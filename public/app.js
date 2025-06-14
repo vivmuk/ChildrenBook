@@ -169,44 +169,133 @@ document.addEventListener('DOMContentLoaded', () => {
 
         await addFontToVFS('LuckiestGuy', 'https://github.com/google/fonts/raw/main/ofl/luckiestguy/LuckiestGuy-Regular.ttf');
         await addFontToVFS('PatrickHand', 'https://github.com/google/fonts/raw/main/ofl/patrickhand/PatrickHand-Regular.ttf');
+        await addFontToVFS('ComicNeue', 'https://github.com/google/fonts/raw/main/ofl/comicneue/ComicNeue-Regular.ttf');
+        await addFontToVFS('BubblegumSans', 'https://github.com/google/fonts/raw/main/ofl/bubblegumsans/BubblegumSans-Regular.ttf');
 
         const page_width = doc.internal.pageSize.getWidth();
         const page_height = doc.internal.pageSize.getHeight();
 
         try {
-            // Page 1: Full-bleed landscape cover with new font
+            // Page 1: Full-bleed landscape cover with improved title banner
             const coverImgBase64 = await fetchImageAsBase64(data.coverImageUrl);
             doc.addImage(coverImgBase64, 'JPEG', 0, 0, page_width, page_height);
             
             const titleText = data.title;
-            doc.setFont('LuckiestGuy', 'normal');
-            doc.setFontSize(52);
-            doc.setTextColor('#000000'); // Shadow color
+            
+            // Create a decorative banner background for the title
+            const bannerHeight = 45;
+            const bannerY = (page_height / 2) - (bannerHeight / 2);
+            const bannerMargin = 30;
+            
+            // Main banner background with gradient effect
+            doc.setFillColor(0, 0, 0, 0.7); // Semi-transparent black
+            doc.roundedRect(bannerMargin, bannerY, page_width - (bannerMargin * 2), bannerHeight, 8, 8, 'F');
+            
+            // Inner lighter banner for depth
+            doc.setFillColor(255, 255, 255, 0.9); // Semi-transparent white
+            doc.roundedRect(bannerMargin + 3, bannerY + 3, page_width - (bannerMargin * 2) - 6, bannerHeight - 6, 5, 5, 'F');
+            
+            // Decorative border
+            doc.setDrawColor(255, 215, 0); // Gold color
+            doc.setLineWidth(2);
+            doc.roundedRect(bannerMargin + 1, bannerY + 1, page_width - (bannerMargin * 2) - 2, bannerHeight - 2, 6, 6, 'S');
+            
+            // Title text with better contrast
+            doc.setFont('BubblegumSans', 'normal');
+            doc.setFontSize(48);
+            
+            // Text shadow for depth
+            doc.setTextColor(0, 0, 0, 0.3); // Semi-transparent black shadow
             doc.text(titleText, (page_width / 2) + 1, (page_height / 2) + 1, { align: 'center', baseline: 'middle' });
-            doc.setTextColor('#FFFFFF'); // Main text color
+            
+            // Main title text
+            doc.setTextColor(70, 130, 180); // Steel blue - child-friendly color
             doc.text(titleText, page_width / 2, page_height / 2, { align: 'center', baseline: 'middle' });
+            
+            // Add decorative stars around the banner
+            doc.setFont('LuckiestGuy', 'normal');
+            doc.setFontSize(24);
+            doc.setTextColor(255, 215, 0); // Gold stars
+            doc.text('★', bannerMargin - 15, page_height / 2, { align: 'center', baseline: 'middle' });
+            doc.text('★', page_width - bannerMargin + 15, page_height / 2, { align: 'center', baseline: 'middle' });
+            doc.text('★', page_width / 2 - 60, bannerY - 10, { align: 'center', baseline: 'middle' });
+            doc.text('★', page_width / 2 + 60, bannerY - 10, { align: 'center', baseline: 'middle' });
 
-            // Subsequent Pages
-            doc.setFont('PatrickHand', 'normal'); // Switch to story font
+            // Subsequent Pages with improved children-friendly design
             for (let i = 0; i < data.story.length; i++) {
                 doc.addPage();
-                doc.setFillColor('#FFF9E8');
+                
+                // Create a warm, child-friendly background
+                doc.setFillColor(255, 253, 240); // Warm ivory background
                 doc.rect(0, 0, page_width, page_height, 'F');
                 
+                // Add subtle decorative border
+                doc.setDrawColor(255, 182, 193); // Light pink border
+                doc.setLineWidth(1);
+                doc.rect(5, 5, page_width - 10, page_height - 10, 'S');
+                
+                // Image with rounded corners effect (simulated)
                 const pageImgBase64 = await fetchImageAsBase64(data.pageImageUrls[i]);
-                const imgSize = page_height / 1.7; 
+                const imgSize = page_height / 1.8; 
                 const imgX = (page_width - imgSize) / 2;
-                doc.addImage(pageImgBase64, 'JPEG', imgX, 10, imgSize, imgSize);
+                const imgY = 15;
                 
-                doc.setTextColor('#000000');
-                doc.setFontSize(24);
-                const textY = imgSize + 25;
-                const textWidth = page_width - 40;
+                // Add shadow behind image
+                doc.setFillColor(0, 0, 0, 0.1);
+                doc.rect(imgX + 2, imgY + 2, imgSize, imgSize, 'F');
+                
+                // Add the main image
+                doc.addImage(pageImgBase64, 'JPEG', imgX, imgY, imgSize, imgSize);
+                
+                // Add decorative frame around image
+                doc.setDrawColor(70, 130, 180); // Steel blue frame
+                doc.setLineWidth(3);
+                doc.rect(imgX - 2, imgY - 2, imgSize + 4, imgSize + 4, 'S');
+                
+                // Story text with child-friendly font
+                doc.setFont('ComicNeue', 'normal');
+                doc.setFontSize(20);
+                doc.setTextColor(51, 51, 51); // Dark gray for better readability
+                
+                const textY = imgY + imgSize + 20;
+                const textWidth = page_width - 60; // More padding
+                const textX = page_width / 2;
+                
+                // Add text background for better readability
                 const splitText = doc.splitTextToSize(data.story[i], textWidth);
-                doc.text(splitText, page_width / 2, textY, { align: 'center' });
+                const textHeight = splitText.length * 8;
+                const textBgY = textY - 5;
                 
+                doc.setFillColor(255, 255, 255, 0.8); // Semi-transparent white background
+                doc.roundedRect(textX - (textWidth / 2) - 10, textBgY, textWidth + 20, textHeight + 10, 5, 5, 'F');
+                
+                // Add the story text
+                doc.text(splitText, textX, textY, { align: 'center' });
+                
+                // Page number in a fun bubble
+                doc.setFont('BubblegumSans', 'normal');
+                doc.setFontSize(16);
+                
+                // Page number bubble
+                const pageNumX = page_width - 25;
+                const pageNumY = page_height - 20;
+                doc.setFillColor(255, 215, 0); // Gold bubble
+                doc.circle(pageNumX, pageNumY, 12, 'F');
+                doc.setDrawColor(255, 165, 0); // Orange border
+                doc.setLineWidth(2);
+                doc.circle(pageNumX, pageNumY, 12, 'S');
+                
+                // Page number text
+                doc.setTextColor(0, 0, 0);
+                doc.text(`${i + 1}`, pageNumX, pageNumY + 2, { align: 'center', baseline: 'middle' });
+                
+                // Add small decorative elements in corners
+                doc.setFont('LuckiestGuy', 'normal');
                 doc.setFontSize(12);
-                doc.text(`${i + 1}`, page_width - 15, page_height - 10);
+                doc.setTextColor(255, 182, 193, 0.5); // Light pink decorations
+                doc.text('❀', 15, 15);
+                doc.text('❀', page_width - 15, 15);
+                doc.text('☆', 15, page_height - 15);
             }
 
             doc.save(`${data.title.replace(/ /g, '_')}.pdf`);
