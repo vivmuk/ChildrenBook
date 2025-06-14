@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Children's Book Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Children's Book Generator</h1>
+        
+        <div id="story-form">
+            <div class="form-group">
+                <label for="story-prompt">What is the story about?</label>
+                <textarea id="story-prompt" rows="3" placeholder="e.g., a curious chameleon who learns to change colors"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="grade-level">What grade level?</label>
+                <select id="grade-level">
+                    <option value="1">1st Grade</option>
+                    <option value="2">2nd Grade</option>
+                    <option value="3" selected>3rd Grade</option>
+                    <option value="4">4th Grade</option>
+                    <option value="5">5th Grade</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="language">What language?</label>
+                <select id="language">
+                    <option value="English" selected>English</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="French">French</option>
+                    <option value="German">German</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Gujarati">Gujarati</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="text-model">Text Generation Model</label>
+                <select id="text-model">
+                    <option value="">Loading Models...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="image-model">Image Generation Model</label>
+                <select id="image-model">
+                    <option value="">Loading Models...</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="art-style">Illustration Style</label>
+                <select id="art-style">
+                    <option value="whimsical and colorful watercolor" selected>Watercolor</option>
+                    <option value="classic cartoon">Classic Cartoon</option>
+                    <option value="Studio Ghibli anime style">Ghibli Style</option>
+                    <option value="Pixar 3D animation style">3D Animation</option>
+                    <option value="storybook pencil sketch">Pencil Sketch</option>
+                </select>
+            </div>
+
+            <button id="generate-btn">Generate Full Story Book</button>
+            <button id="download-pdf-btn" class="hidden">Download Book as PDF</button>
+        </div>
+
+        <div id="loading" class="hidden">
+            <div class="spinner"></div>
+            <p>Generating your complete book with a cover and 8 pages of illustrations. This may take a minute...</p>
+        </div>
+
+        <div id="story-book" class="hidden">
+            <h2 id="book-title"></h2>
+            <div id="book-cover"></div>
+            <div id="book-pages"></div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html> 
