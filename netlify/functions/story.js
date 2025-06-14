@@ -28,15 +28,32 @@ async function generateImageForText(text, artStyle, apiKey, imageModel, characte
 }
 
 exports.handler = async function (event, context) {
+    // Add CORS headers
+    const headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    };
+
+    if (event.httpMethod === 'OPTIONS') {
+        return { statusCode: 200, headers, body: '' };
+    }
+
     if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, body: 'Method Not Allowed' };
+        return { statusCode: 405, headers, body: 'Method Not Allowed' };
     }
 
     try {
+        console.log('Function called with event:', JSON.stringify(event, null, 2));
+        
+        if (!event.body) {
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Request body is required.' }) };
+        }
+
         const { prompt, gradeLevel, language, artStyle, model, imageModel } = JSON.parse(event.body);
 
         if (!prompt) {
-            return { statusCode: 400, body: JSON.stringify({ error: 'A story prompt is required.' }) };
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'A story prompt is required.' }) };
         }
 
         const storySystemPrompt = `
@@ -84,6 +101,7 @@ You are a world-class children's book author. Your task is to write a unique, ca
 
         return {
             statusCode: 200,
+            headers,
             body: JSON.stringify({ title, story, coverImageUrl, pageImageUrls }),
         };
 
@@ -91,6 +109,7 @@ You are a world-class children's book author. Your task is to write a unique, ca
         console.error('An error occurred during book generation:', error.response ? error.response.data : error.message);
         return {
             statusCode: 500,
+            headers,
             body: JSON.stringify({ error: 'Failed to generate the book.', details: error.message }),
         };
     }

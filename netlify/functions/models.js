@@ -3,6 +3,17 @@ const axios = require('axios');
 const VENICE_API_KEY = 'ntmhtbP2fr_pOQsmuLPuN_nm6lm2INWKiNcvrdEfEC';
 
 exports.handler = async function (event, context) {
+    // Add CORS headers
+    const headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS'
+    };
+
+    if (event.httpMethod === 'OPTIONS') {
+        return { statusCode: 200, headers, body: '' };
+    }
+
     try {
         const textModelPromise = axios.get('https://api.venice.ai/api/v1/models', {
             headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` },
@@ -21,12 +32,14 @@ exports.handler = async function (event, context) {
 
         return {
             statusCode: 200,
+            headers,
             body: JSON.stringify({ textModels, imageModels }),
         };
     } catch (error) {
         console.error("Failed to fetch models:", error.message);
         return {
             statusCode: 500,
+            headers,
             body: JSON.stringify({ error: "Could not fetch models from Venice.ai" }),
         };
     }
