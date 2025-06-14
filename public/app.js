@@ -162,9 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const titleText = data.title;
             
-            // Create a strong banner background for maximum title visibility
+            // Create a strong banner background at the bottom for maximum title visibility
             const bannerHeight = 50;
-            const bannerY = (page_height / 2) - (bannerHeight / 2);
+            const bannerY = page_height - bannerHeight - 20; // Position at bottom with 20px margin
             const bannerMargin = 20;
             
             // Outer shadow for depth
@@ -190,14 +190,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Black text on white background for maximum contrast
             doc.setTextColor(0, 0, 0); // Pure black text
-            doc.text(titleText, page_width / 2, page_height / 2, { align: 'center', baseline: 'middle' });
+            doc.text(titleText, page_width / 2, bannerY + (bannerHeight / 2), { align: 'center', baseline: 'middle' });
             
             // Add decorative elements using built-in characters
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(20);
             doc.setTextColor(255, 215, 0); // Gold decorations
-            doc.text('✦', bannerMargin - 10, page_height / 2, { align: 'center', baseline: 'middle' });
-            doc.text('✦', page_width - bannerMargin + 10, page_height / 2, { align: 'center', baseline: 'middle' });
+            doc.text('✦', bannerMargin - 10, bannerY + (bannerHeight / 2), { align: 'center', baseline: 'middle' });
+            doc.text('✦', page_width - bannerMargin + 10, bannerY + (bannerHeight / 2), { align: 'center', baseline: 'middle' });
             doc.text('❋', page_width / 2 - 50, bannerY - 8, { align: 'center', baseline: 'middle' });
             doc.text('❋', page_width / 2 + 50, bannerY - 8, { align: 'center', baseline: 'middle' });
 
@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.addPage();
                 
                 // Create a warm, child-friendly background
-                doc.setFillColor(255, 253, 240); // Warm ivory background
+                doc.setFillColor(255, 255, 0); // Yellow background like the user prefers
                 doc.rect(0, 0, page_width, page_height, 'F');
                 
                 // Add subtle decorative border
