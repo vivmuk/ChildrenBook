@@ -16,7 +16,7 @@ const VENICE_API_KEY = 'ntmhtbP2fr_pOQsmuLPuN_nm6lm2INWKiNcvrdEfEC';
 
 // Helper function for image generation
 async function generateImageForText(text, artStyle, imageModel, characterDescription, isCover = false, title = '', size = "1024x1024") {
-    const promptLimit = imageModel && imageModel.includes('flux') ? 2000 : 1400;
+    const promptLimit = 1400; // Keep all image prompts under 1400 characters
     let imagePromptSystem;
     
     if (isCover) {
@@ -36,7 +36,7 @@ async function generateImageForText(text, artStyle, imageModel, characterDescrip
 
     let imagePrompt = promptGenResponse.data.choices[0].message.content;
     if (imagePrompt.length > promptLimit) {
-        console.log(`Truncating long image prompt to ${promptLimit} chars...`);
+        console.log(`Truncating long image prompt to 1400 chars...`);
         imagePrompt = imagePrompt.substring(0, promptLimit);
     }
 
