@@ -82,14 +82,64 @@ document.addEventListener('DOMContentLoaded', () => {
         currentBookData = null;
 
         try {
-            const response = await fetch('/api/story', {
+            // Step 1: Generate story text only
+            updateLoadingMessage('Generating story text...');
+            const textResponse = await fetch('/api/story-text-only', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt, gradeLevel, language, artStyle, model, imageModel })
+                body: JSON.stringify({ prompt, gradeLevel, language, model })
             });
-            if (!response.ok) throw new Error((await response.json()).error || 'Failed to generate book.');
+            if (!textResponse.ok) throw new Error('Failed to generate story text.');
             
-            currentBookData = await response.json();
+            const storyData = await textResponse.json();
+            console.log('Story text generated:', storyData.title);
+
+            // Step 2: Generate cover image
+            updateLoadingMessage('Generating cover image...');
+            const coverResponse = await fetch('/api/generate-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    text: `A beautiful book cover for a story titled "${storyData.title}"`,
+                    artStyle, 
+                    imageModel, 
+                    characterDescription: storyData.characterDescription,
+                    isCover: true,
+                    title: storyData.title
+                })
+            });
+            if (!coverResponse.ok) throw new Error('Failed to generate cover image.');
+            
+            const coverData = await coverResponse.json();
+            storyData.coverImageUrl = coverData.imageUrl;
+
+            // Step 3: Generate page images one by one
+            storyData.pageImageUrls = [];
+            for (let i = 0; i < storyData.story.length; i++) {
+                updateLoadingMessage(`Generating illustration ${i + 1} of ${storyData.story.length}...`);
+                
+                const pageResponse = await fetch('/api/generate-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        text: storyData.story[i],
+                        artStyle, 
+                        imageModel, 
+                        characterDescription: storyData.characterDescription,
+                        isCover: false
+                    })
+                });
+                
+                if (!pageResponse.ok) {
+                    console.warn(`Failed to generate image for page ${i + 1}`);
+                    storyData.pageImageUrls.push(''); // Add placeholder
+                } else {
+                    const pageData = await pageResponse.json();
+                    storyData.pageImageUrls.push(pageData.imageUrl);
+                }
+            }
+
+            currentBookData = storyData;
             renderStoryBook(currentBookData);
 
         } catch (error) {
@@ -100,6 +150,14 @@ document.addEventListener('DOMContentLoaded', () => {
             storyForm.classList.remove('hidden');
         }
     });
+
+    // Helper function to update loading message
+    function updateLoadingMessage(message) {
+        const loadingText = loadingDiv.querySelector('p');
+        if (loadingText) {
+            loadingText.textContent = message;
+        }
+    }
 
     // Render the generated book to the HTML
     function renderStoryBook(data) {
