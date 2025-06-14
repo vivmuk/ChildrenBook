@@ -2,7 +2,7 @@
   "name": "childrens-book-generator",
   "version": "1.0.0",
   "description": "AI-powered children's book generator using Venice.ai",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
@@ -36,6 +36,6 @@
     "netlify-lambda": "^2.0.16"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "18.x"
   }
 }
