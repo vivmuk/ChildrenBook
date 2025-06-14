@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const titleText = data.title;
             
             // Create a strong banner background at the bottom for maximum title visibility
-            const bannerHeight = 50;
+            const bannerHeight = 70; // Increased height to fit text better
             const bannerY = page_height - bannerHeight - 20; // Position at bottom with 20px margin
             const bannerMargin = 20;
             
@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Title text with maximum readability
             doc.setFont('helvetica', 'bold'); // Use reliable built-in font
-            doc.setFontSize(42);
+            doc.setFontSize(32); // Reduced font size to fit better in banner
             
             // Black text on white background for maximum contrast
             doc.setTextColor(0, 0, 0); // Pure black text
@@ -205,8 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = 0; i < data.story.length; i++) {
                 doc.addPage();
                 
-                // Create a warm, child-friendly background
-                doc.setFillColor(255, 255, 0); // Yellow background like the user prefers
+                // Create a subtle warm background
+                doc.setFillColor(255, 255, 230); // Very light yellow tint (subtle)
                 doc.rect(0, 0, page_width, page_height, 'F');
                 
                 // Add subtle decorative border
@@ -235,19 +235,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Story text with child-friendly font
                 doc.setFont('helvetica', 'normal'); // Use reliable built-in font
                 doc.setFontSize(18);
-                doc.setTextColor(51, 51, 51); // Dark gray for better readability
+                doc.setTextColor(0, 0, 0); // Pure black text for maximum readability
                 
                 const textY = imgY + imgSize + 20;
                 const textWidth = page_width - 60; // More padding
                 const textX = page_width / 2;
                 
-                // Add text background for better readability
+                // No background needed - just black text on subtle yellow background
                 const splitText = doc.splitTextToSize(data.story[i], textWidth);
-                const textHeight = splitText.length * 8;
-                const textBgY = textY - 5;
-                
-                doc.setFillColor(255, 255, 255, 0.8); // Semi-transparent white background
-                doc.roundedRect(textX - (textWidth / 2) - 10, textBgY, textWidth + 20, textHeight + 10, 5, 5, 'F');
                 
                 // Add the story text
                 doc.text(splitText, textX, textY, { align: 'center' });
