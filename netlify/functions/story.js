@@ -76,7 +76,10 @@ You are a world-class children's book author. Your task is to write a unique, ca
             model: model || 'mistral-31-24b',
             messages: [{ role: 'system', content: storySystemPrompt }, { role: 'user', content: `The story idea is: ${prompt}` }],
             response_format: { type: 'json_object' }
-        }, { headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` } });
+        }, { 
+            headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` },
+            timeout: 30000 // 30 second timeout
+        });
 
         const storyData = JSON.parse(storyResponse.data.choices[0].message.content);
         const { title, story } = storyData;
@@ -88,7 +91,10 @@ You are a world-class children's book author. Your task is to write a unique, ca
         const characterResponse = await axios.post('https://api.venice.ai/api/v1/chat/completions', {
             model: 'mistral-31-24b',
             messages: [{ role: 'system', content: characterDescSystemPrompt }, { role: 'user', content: 'Generate the character description.' }]
-        }, { headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` } });
+        }, { 
+            headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` },
+            timeout: 30000 // 30 second timeout
+        });
         const characterDescription = characterResponse.data.choices[0].message.content;
         console.log("Character Description:", characterDescription);
 
