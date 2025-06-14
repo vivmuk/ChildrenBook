@@ -149,28 +149,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
 
-        const addFontToVFS = async (name, url) => {
-            try {
-                const fontResponse = await fetch(url);
-                if (!fontResponse.ok) throw new Error(`Failed to fetch font ${name}`);
-                const blob = await fontResponse.blob();
-                const fontBase64 = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-                doc.addFileToVFS(`${name}.ttf`, fontBase64);
-                doc.addFont(`${name}.ttf`, name, 'normal');
-            } catch (error) {
-                console.error(`Could not fetch font ${name}, using default.`, error);
-            }
-        };
-
-        await addFontToVFS('LuckiestGuy', 'https://github.com/google/fonts/raw/main/ofl/luckiestguy/LuckiestGuy-Regular.ttf');
-        await addFontToVFS('PatrickHand', 'https://github.com/google/fonts/raw/main/ofl/patrickhand/PatrickHand-Regular.ttf');
-        await addFontToVFS('ComicNeue', 'https://github.com/google/fonts/raw/main/ofl/comicneue/ComicNeue-Regular.ttf');
-        await addFontToVFS('BubblegumSans', 'https://github.com/google/fonts/raw/main/ofl/bubblegumsans/BubblegumSans-Regular.ttf');
+        // Use built-in fonts for reliability
+        console.log("Available fonts:", doc.getFontList());
 
         const page_width = doc.internal.pageSize.getWidth();
         const page_height = doc.internal.pageSize.getHeight();
@@ -182,44 +162,44 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const titleText = data.title;
             
-            // Create a decorative banner background for the title
-            const bannerHeight = 45;
+            // Create a strong banner background for maximum title visibility
+            const bannerHeight = 50;
             const bannerY = (page_height / 2) - (bannerHeight / 2);
-            const bannerMargin = 30;
+            const bannerMargin = 20;
             
-            // Main banner background with gradient effect
-            doc.setFillColor(0, 0, 0, 0.7); // Semi-transparent black
-            doc.roundedRect(bannerMargin, bannerY, page_width - (bannerMargin * 2), bannerHeight, 8, 8, 'F');
+            // Outer shadow for depth
+            doc.setFillColor(0, 0, 0); // Black shadow
+            doc.roundedRect(bannerMargin + 2, bannerY + 2, page_width - (bannerMargin * 2), bannerHeight, 10, 10, 'F');
             
-            // Inner lighter banner for depth
-            doc.setFillColor(255, 255, 255, 0.9); // Semi-transparent white
-            doc.roundedRect(bannerMargin + 3, bannerY + 3, page_width - (bannerMargin * 2) - 6, bannerHeight - 6, 5, 5, 'F');
+            // Main banner background - solid for maximum contrast
+            doc.setFillColor(0, 0, 0); // Solid black background
+            doc.roundedRect(bannerMargin, bannerY, page_width - (bannerMargin * 2), bannerHeight, 10, 10, 'F');
             
-            // Decorative border
-            doc.setDrawColor(255, 215, 0); // Gold color
-            doc.setLineWidth(2);
-            doc.roundedRect(bannerMargin + 1, bannerY + 1, page_width - (bannerMargin * 2) - 2, bannerHeight - 2, 6, 6, 'S');
+            // Inner white banner for text background
+            doc.setFillColor(255, 255, 255); // Pure white
+            doc.roundedRect(bannerMargin + 4, bannerY + 4, page_width - (bannerMargin * 2) - 8, bannerHeight - 8, 6, 6, 'F');
             
-            // Title text with better contrast
-            doc.setFont('BubblegumSans', 'normal');
-            doc.setFontSize(48);
+            // Gold decorative border for elegance
+            doc.setDrawColor(255, 215, 0); // Gold
+            doc.setLineWidth(3);
+            doc.roundedRect(bannerMargin + 2, bannerY + 2, page_width - (bannerMargin * 2) - 4, bannerHeight - 4, 8, 8, 'S');
             
-            // Text shadow for depth
-            doc.setTextColor(0, 0, 0, 0.3); // Semi-transparent black shadow
-            doc.text(titleText, (page_width / 2) + 1, (page_height / 2) + 1, { align: 'center', baseline: 'middle' });
+            // Title text with maximum readability
+            doc.setFont('helvetica', 'bold'); // Use reliable built-in font
+            doc.setFontSize(42);
             
-            // Main title text
-            doc.setTextColor(70, 130, 180); // Steel blue - child-friendly color
+            // Black text on white background for maximum contrast
+            doc.setTextColor(0, 0, 0); // Pure black text
             doc.text(titleText, page_width / 2, page_height / 2, { align: 'center', baseline: 'middle' });
             
-            // Add decorative stars around the banner
-            doc.setFont('LuckiestGuy', 'normal');
-            doc.setFontSize(24);
-            doc.setTextColor(255, 215, 0); // Gold stars
-            doc.text('★', bannerMargin - 15, page_height / 2, { align: 'center', baseline: 'middle' });
-            doc.text('★', page_width - bannerMargin + 15, page_height / 2, { align: 'center', baseline: 'middle' });
-            doc.text('★', page_width / 2 - 60, bannerY - 10, { align: 'center', baseline: 'middle' });
-            doc.text('★', page_width / 2 + 60, bannerY - 10, { align: 'center', baseline: 'middle' });
+            // Add decorative elements using built-in characters
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(20);
+            doc.setTextColor(255, 215, 0); // Gold decorations
+            doc.text('✦', bannerMargin - 10, page_height / 2, { align: 'center', baseline: 'middle' });
+            doc.text('✦', page_width - bannerMargin + 10, page_height / 2, { align: 'center', baseline: 'middle' });
+            doc.text('❋', page_width / 2 - 50, bannerY - 8, { align: 'center', baseline: 'middle' });
+            doc.text('❋', page_width / 2 + 50, bannerY - 8, { align: 'center', baseline: 'middle' });
 
             // Subsequent Pages with improved children-friendly design
             for (let i = 0; i < data.story.length; i++) {
@@ -253,8 +233,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.rect(imgX - 2, imgY - 2, imgSize + 4, imgSize + 4, 'S');
                 
                 // Story text with child-friendly font
-                doc.setFont('ComicNeue', 'normal');
-                doc.setFontSize(20);
+                doc.setFont('helvetica', 'normal'); // Use reliable built-in font
+                doc.setFontSize(18);
                 doc.setTextColor(51, 51, 51); // Dark gray for better readability
                 
                 const textY = imgY + imgSize + 20;
@@ -273,8 +253,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.text(splitText, textX, textY, { align: 'center' });
                 
                 // Page number in a fun bubble
-                doc.setFont('BubblegumSans', 'normal');
-                doc.setFontSize(16);
+                doc.setFont('helvetica', 'bold'); // Use reliable built-in font
+                doc.setFontSize(14);
                 
                 // Page number bubble
                 const pageNumX = page_width - 25;
@@ -290,12 +270,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.text(`${i + 1}`, pageNumX, pageNumY + 2, { align: 'center', baseline: 'middle' });
                 
                 // Add small decorative elements in corners
-                doc.setFont('LuckiestGuy', 'normal');
+                doc.setFont('helvetica', 'normal');
                 doc.setFontSize(12);
-                doc.setTextColor(255, 182, 193, 0.5); // Light pink decorations
-                doc.text('❀', 15, 15);
-                doc.text('❀', page_width - 15, 15);
-                doc.text('☆', 15, page_height - 15);
+                doc.setTextColor(255, 182, 193); // Light pink decorations (removed transparency)
+                doc.text('*', 15, 15);
+                doc.text('*', page_width - 15, 15);
+                doc.text('+', 15, page_height - 15);
             }
 
             doc.save(`${data.title.replace(/ /g, '_')}.pdf`);
