@@ -156,50 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const page_height = doc.internal.pageSize.getHeight();
 
         try {
-            // Page 1: Full-bleed landscape cover with improved title banner
+            // Page 1: Full-bleed landscape cover (title included in the generated image)
             const coverImgBase64 = await fetchImageAsBase64(data.coverImageUrl);
             doc.addImage(coverImgBase64, 'JPEG', 0, 0, page_width, page_height);
-            
-            const titleText = data.title;
-            
-            // Create a strong banner background at the bottom for maximum title visibility
-            const bannerHeight = 70; // Increased height to fit text better
-            const bannerY = page_height - bannerHeight - 20; // Position at bottom with 20px margin
-            const bannerMargin = 20;
-            
-            // Outer shadow for depth
-            doc.setFillColor(0, 0, 0); // Black shadow
-            doc.roundedRect(bannerMargin + 2, bannerY + 2, page_width - (bannerMargin * 2), bannerHeight, 10, 10, 'F');
-            
-            // Main banner background - solid for maximum contrast
-            doc.setFillColor(0, 0, 0); // Solid black background
-            doc.roundedRect(bannerMargin, bannerY, page_width - (bannerMargin * 2), bannerHeight, 10, 10, 'F');
-            
-            // Inner white banner for text background
-            doc.setFillColor(255, 255, 255); // Pure white
-            doc.roundedRect(bannerMargin + 4, bannerY + 4, page_width - (bannerMargin * 2) - 8, bannerHeight - 8, 6, 6, 'F');
-            
-            // Gold decorative border for elegance
-            doc.setDrawColor(255, 215, 0); // Gold
-            doc.setLineWidth(3);
-            doc.roundedRect(bannerMargin + 2, bannerY + 2, page_width - (bannerMargin * 2) - 4, bannerHeight - 4, 8, 8, 'S');
-            
-            // Title text with maximum readability
-            doc.setFont('helvetica', 'bold'); // Use reliable built-in font
-            doc.setFontSize(32); // Reduced font size to fit better in banner
-            
-            // Black text on white background for maximum contrast
-            doc.setTextColor(0, 0, 0); // Pure black text
-            doc.text(titleText, page_width / 2, bannerY + (bannerHeight / 2), { align: 'center', baseline: 'middle' });
-            
-            // Add decorative elements using built-in characters
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(20);
-            doc.setTextColor(255, 215, 0); // Gold decorations
-            doc.text('✦', bannerMargin - 10, bannerY + (bannerHeight / 2), { align: 'center', baseline: 'middle' });
-            doc.text('✦', page_width - bannerMargin + 10, bannerY + (bannerHeight / 2), { align: 'center', baseline: 'middle' });
-            doc.text('❋', page_width / 2 - 50, bannerY - 8, { align: 'center', baseline: 'middle' });
-            doc.text('❋', page_width / 2 + 50, bannerY - 8, { align: 'center', baseline: 'middle' });
 
             // Subsequent Pages with improved children-friendly design
             for (let i = 0; i < data.story.length; i++) {
