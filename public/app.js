@@ -186,10 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Add the main image
                 doc.addImage(pageImgBase64, 'JPEG', imgX, imgY, imgSize, imgSize);
                 
-                // Add decorative frame around image
-                doc.setDrawColor(70, 130, 180); // Steel blue frame
-                doc.setLineWidth(3);
-                doc.rect(imgX - 2, imgY - 2, imgSize + 4, imgSize + 4, 'S');
+                // No frame around image for cleaner look
                 
                 // Story text with child-friendly font
                 doc.setFont('helvetica', 'normal'); // Use reliable built-in font
@@ -206,22 +203,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Add the story text
                 doc.text(splitText, textX, textY, { align: 'center' });
                 
-                // Page number in a fun bubble
+                // Simple page number without circle
                 doc.setFont('helvetica', 'bold'); // Use reliable built-in font
                 doc.setFontSize(14);
+                doc.setTextColor(0, 0, 0); // Black text
                 
-                // Page number bubble
                 const pageNumX = page_width - 25;
                 const pageNumY = page_height - 20;
-                doc.setFillColor(255, 215, 0); // Gold bubble
-                doc.circle(pageNumX, pageNumY, 12, 'F');
-                doc.setDrawColor(255, 165, 0); // Orange border
-                doc.setLineWidth(2);
-                doc.circle(pageNumX, pageNumY, 12, 'S');
-                
-                // Page number text
-                doc.setTextColor(0, 0, 0);
-                doc.text(`${i + 1}`, pageNumX, pageNumY + 2, { align: 'center', baseline: 'middle' });
+                doc.text(`${i + 1}`, pageNumX, pageNumY, { align: 'center', baseline: 'middle' });
                 
                 // Add small decorative elements in corners
                 doc.setFont('helvetica', 'normal');
@@ -231,6 +220,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.text('*', page_width - 15, 15);
                 doc.text('+', 15, page_height - 15);
             }
+
+            // Final "The End" page
+            doc.addPage();
+            
+            // Create a subtle warm background
+            doc.setFillColor(255, 255, 230); // Very light yellow tint (subtle)
+            doc.rect(0, 0, page_width, page_height, 'F');
+            
+            // Add subtle decorative border
+            doc.setDrawColor(255, 182, 193); // Light pink border
+            doc.setLineWidth(1);
+            doc.rect(5, 5, page_width - 10, page_height - 10, 'S');
+            
+            // "The End" image
+            const endImgBase64 = await fetchImageAsBase64(data.endPageImageUrl);
+            const endImgSize = page_height / 2; 
+            const endImgX = (page_width - endImgSize) / 2;
+            const endImgY = 20;
+            
+            // Add shadow behind image
+            doc.setFillColor(0, 0, 0, 0.1);
+            doc.rect(endImgX + 2, endImgY + 2, endImgSize, endImgSize, 'F');
+            
+            // Add the "The End" image
+            doc.addImage(endImgBase64, 'JPEG', endImgX, endImgY, endImgSize, endImgSize);
+            
+            // No frame around image for cleaner look
+            
+            // "Made with Lots of Love by Vivek" text
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(24);
+            doc.setTextColor(0, 0, 0); // Pure black text
+            
+            const signatureY = endImgY + endImgSize + 30;
+            const signatureX = page_width / 2;
+            
+            doc.text('Made with Lots of Love by Vivek', signatureX, signatureY, { align: 'center' });
+            
+            // Add small decorative elements in corners
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(12);
+            doc.setTextColor(255, 182, 193); // Light pink decorations
+            doc.text('*', 15, 15);
+            doc.text('*', page_width - 15, 15);
+            doc.text('+', 15, page_height - 15);
 
             doc.save(`${data.title.replace(/ /g, '_')}.pdf`);
         } catch (error) {

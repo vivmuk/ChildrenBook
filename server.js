@@ -157,10 +157,14 @@ You are a world-class children's book author. Your task is to write a unique, ca
         console.log(`Generating all illustrations with image model: ${imageModel}...`);
         const coverPromise = generateImageForText(`A beautiful book cover for a story titled "${title}"`, artStyle, imageModel, characterDescription, true, title, "1792x1024");
         const pageImagePromises = story.map(pageText => generateImageForText(pageText, artStyle, imageModel, characterDescription, false, '', "1024x1024"));
-        const [coverImageUrl, ...pageImageUrls] = await Promise.all([coverPromise, ...pageImagePromises]);
+        const endPagePromise = generateImageForText(`A beautiful "The End" illustration that matches the theme and style of the story "${title}". Show a magical, whimsical "The End" sign or text integrated naturally into a scene that reflects the story's mood and setting.`, artStyle, imageModel, characterDescription, false, '', "1024x1024");
+        const allImages = await Promise.all([coverPromise, ...pageImagePromises, endPagePromise]);
+        const coverImageUrl = allImages[0];
+        const pageImageUrls = allImages.slice(1, -1);
+        const endPageImageUrl = allImages[allImages.length - 1];
         console.log("All images generated successfully.");
 
-        res.json({ title, story, coverImageUrl, pageImageUrls });
+        res.json({ title, story, coverImageUrl, pageImageUrls, endPageImageUrl });
 
     } catch (error) {
         console.error('Error during book generation:', error.response ? error.response.data : error.message);
