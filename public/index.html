@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Story Spark | Venice.ai Children's Books</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -74,7 +71,7 @@
                             <div class="form-group form-group--wide">
                                 <label for="story-prompt">Story spark</label>
                                 <textarea id="story-prompt" rows="3" placeholder="e.g., a curious chameleon who learns to change colors" required></textarea>
-                                <p class="helper-text">The richer the prompt, the more vivid the journey. Mention emotions, locations, or character traits for extra sparkle.</p>
+                                <p class="helper-text">The richer the prompt, the more vivid the journey. Please avoid including personal information about children.</p>
                             </div>
 
                             <div class="form-group">
@@ -101,35 +98,39 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="text-model">Text Generation Model</label>
+                                <label for="art-style">Illustration style</label>
+                                <select id="art-style">
+                                    <option value="Classic storybook" selected>Classic storybook</option>
+                                    <option value="Dreamy watercolour">Dreamy watercolour</option>
+                                    <option value="Playful cartoon">Playful cartoon</option>
+                                    <option value="Studio Ghibli inspired">Studio Ghibli inspired</option>
+                                    <option value="Bold comic panels">Bold comic panels</option>
+                                </select>
+                                <p class="helper-text">Venice.ai keeps the look consistent across the cover, every page, and the final "The End" spread.</p>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="text-model">Text generation model</label>
                                 <select id="text-model">
-                                    <option value="">Loading Models...</option>
+                                    <option value="">Loading models…</option>
                                 </select>
                             </div>
 
                             <div class="form-group">
-                                <label for="image-model">Image Generation Model</label>
+                                <label for="image-model">Image generation model</label>
                                 <select id="image-model">
-                                    <option value="">Loading Models...</option>
+                                    <option value="">Loading models…</option>
                                 </select>
+                                <p class="helper-text">Only Venice.ai safe-mode models with visible watermarks are offered.</p>
                             </div>
 
-                    <div class="form-group form-group--wide form-group--checkbox">
-                        <div class="form-checkbox">
-                            <input type="checkbox" id="adult-confirmation" required>
-                            <label for="adult-confirmation">I am an adult creating this story for children and I will review all content before sharing.</label>
-                        </div>
-                        <p class="helper-text">This tool is designed for grown-ups to craft positive, age-appropriate experiences. Please supervise young readers and ensure the story aligns with your family or classroom guidelines.</p>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="button" id="generate-btn" class="btn btn--primary">
-                            <span class="btn__sparkle" aria-hidden="true"></span>
-                            Generate full storybook
-                        </button>
-                        <button type="button" id="download-pdf-btn" class="btn btn--secondary hidden">Download book as PDF</button>
-                    </div>
-                </form>
+                            <div class="form-group form-group--wide form-group--checkbox">
+                                <div class="form-checkbox">
+                                    <input type="checkbox" id="adult-confirmation" required>
+                                    <label for="adult-confirmation">I am an adult creating this story for children and I will review all content before sharing.</label>
+                                </div>
+                                <p class="helper-text">This experience is designed for adults to supervise. Review every story before sharing with kids and ensure it aligns with classroom or household guidelines.</p>
+                            </div>
 
                             <div class="form-actions">
                                 <button type="button" id="generate-btn" class="btn btn--primary">
@@ -245,7 +246,6 @@
                     <h3>Family-first safeguards</h3>
                     <p>Illustrations are generated with Venice.ai safe-mode models (venice-sd35, hidream, flux-dev, qwen-image, wai-Illustrious) and visible watermarks, but an adult should always review the story before it reaches young readers.</p>
                 </div>
-            </aside>
 
                 <div class="faq">
                     <h2>Frequently asked questions</h2>
