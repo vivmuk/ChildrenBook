@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const bookPagesEl = document.getElementById('book-pages');
     const textModelSelect = document.getElementById('text-model');
     const imageModelSelect = document.getElementById('image-model');
+    const storyPromptInput = document.getElementById('story-prompt');
+    const adultConfirmation = document.getElementById('adult-confirmation');
+    const artStyleSelect = document.getElementById('art-style');
 
     const statusBanner = document.getElementById('status-banner');
     const statusBannerIcon = statusBanner ? statusBanner.querySelector('.status-banner__icon') : null;
@@ -191,7 +194,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function populateModels() {
+        if (!textModelSelect || !imageModelSelect) {
+            console.error('Model dropdowns are missing from the page.');
+            return;
+        }
+
         try {
+            textModelSelect.disabled = true;
+            imageModelSelect.disabled = true;
+            textModelSelect.innerHTML = '<option value="">Loading…</option>';
+            imageModelSelect.innerHTML = '<option value="">Loading…</option>';
+
             setStatus('Fetching the latest Venice.ai models…', 'info');
             const response = await fetchWithFallback('/models');
             if (!response.ok) {
@@ -207,14 +220,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const { textModels, imageModels } = await response.json();
 
+            const renderOption = (selectEl, model, fallbackLabel) => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                const label = model.model_spec?.name || fallbackLabel || model.id;
+                option.textContent = `${label} (${model.id})`;
+                const promptLimit = model.model_spec?.constraints?.promptCharacterLimit;
+                if (promptLimit) {
+                    option.dataset.promptLimit = promptLimit;
+                }
+                selectEl.appendChild(option);
+                return option;
+            };
+
             textModelSelect.innerHTML = '';
             if (Array.isArray(textModels) && textModels.length > 0) {
                 textModels.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model.id;
-                    option.textContent = model.id;
-                    if (model.id === 'mistral-31-24b') option.selected = true;
-                    textModelSelect.appendChild(option);
+                    const option = renderOption(textModelSelect, model);
+                    if (model.id === 'mistral-31-24b') {
+                        option.selected = true;
+                    }
                 });
             } else {
                 textModelSelect.innerHTML = '<option value="">No text models found</option>';
@@ -223,11 +248,10 @@ document.addEventListener('DOMContentLoaded', () => {
             imageModelSelect.innerHTML = '';
             if (Array.isArray(imageModels) && imageModels.length > 0) {
                 imageModels.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model.id;
-                    option.textContent = model.id;
-                    if (model.id === 'venice-sd35') option.selected = true;
-                    imageModelSelect.appendChild(option);
+                    const option = renderOption(imageModelSelect, model, 'Safe image model');
+                    if (model.id === 'venice-sd35') {
+                        option.selected = true;
+                    }
                 });
                 if (!imageModelSelect.value) {
                     imageModelSelect.value = imageModels[0].id;
@@ -237,11 +261,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             setStatus('Models ready! Choose your creative combo to begin.', 'success');
+            textModelSelect.disabled = false;
+            imageModelSelect.disabled = false;
         } catch (error) {
             console.error('Failed to load models:', error);
             textModelSelect.innerHTML = '<option value="">Unable to load models</option>';
             imageModelSelect.innerHTML = '<option value="">Unable to load models</option>';
             setStatus(`We could not reach the Venice.ai models API: ${error.message}`, 'error');
+            textModelSelect.disabled = true;
+            imageModelSelect.disabled = true;
         }
     }
 
@@ -390,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const prompt = storyPromptInput?.value.trim() || '';
         const gradeLevel = document.getElementById('grade-level').value;
         const language = document.getElementById('language').value;
-        const artStyle = document.getElementById('art-style').value;
+        const artStyle = artStyleSelect?.value || 'Classic storybook';
         const model = textModelSelect.value;
         const imageModel = imageModelSelect.value;
 

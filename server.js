@@ -18,11 +18,23 @@ const {
     isAllowedImageModel,
     enforceSafeImageModel,
     buildSafeImagePayload,
+    getPromptCharacterLimit,
 } = require('./safety-config');
 
 // Helper function for image generation
-async function generateImageForText(text, artStyle, imageModel, characterDescription, isCover = false, title = '', size = "1024x1024") {
-    const promptLimit = 1400; // Keep all image prompts under 1400 characters
+async function generateImageForText(
+    text,
+    artStyle,
+    imageModel,
+    characterDescription,
+    isCover = false,
+    title = '',
+    size = "1024x1024"
+) {
+    const safeImageModelId = enforceSafeImageModel(imageModel);
+    const rawPromptLimit = getPromptCharacterLimit(safeImageModelId);
+    const promptLimitBuffer = 50;
+    const promptLimit = Math.max(1, rawPromptLimit - promptLimitBuffer);
     let imagePromptSystem;
     
     if (isCover) {
@@ -46,7 +58,7 @@ async function generateImageForText(text, artStyle, imageModel, characterDescrip
 
     let imagePrompt = promptGenResponse.data.choices[0].message.content;
     if (imagePrompt.length > promptLimit) {
-        console.log(`Truncating long image prompt to 1400 chars...`);
+        console.log(`Truncating long image prompt to ${promptLimit} chars to respect ${safeImageModelId}'s ${rawPromptLimit}-character limit.`);
         imagePrompt = imagePrompt.substring(0, promptLimit);
     }
 
@@ -55,7 +67,7 @@ async function generateImageForText(text, artStyle, imageModel, characterDescrip
         n: 1,
         size,
         response_format: 'url',
-    }, imageModel);
+    }, safeImageModelId);
 
     const imageResponse = await axios.post('https://api.venice.ai/api/v1/images/generations', imageRequestPayload, {
         headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` },
