@@ -1,36 +1,161 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Ensure jsPDF is loaded
-    const { jsPDF } = window.jspdf;
+    const { jsPDF } = window.jspdf || {};
     if (!jsPDF) {
-        console.error("jsPDF not loaded!");
+        console.error('jsPDF not loaded!');
         return;
     }
 
-    // --- DOM Elements ---
+    const API_PATHS = window.__API_PATHS__ || ['/api', '/.netlify/functions'];
+
     const generateBtn = document.getElementById('generate-btn');
-    const downloadPdfBtn = document.getElementById('download-pdf-btn');
+    const downloadPdfBtnMain = document.getElementById('download-pdf-btn');
+    const downloadPdfBtnTop = document.getElementById('download-pdf-btn-top');
     const storyForm = document.getElementById('story-form');
     const loadingDiv = document.getElementById('loading');
+    const loadingText = loadingDiv ? loadingDiv.querySelector('.loading__text') : null;
     const storyBookDiv = document.getElementById('story-book');
     const bookTitleEl = document.getElementById('book-title');
     const bookCoverEl = document.getElementById('book-cover');
     const bookPagesEl = document.getElementById('book-pages');
     const textModelSelect = document.getElementById('text-model');
     const imageModelSelect = document.getElementById('image-model');
+    const statusBanner = document.getElementById('status-banner');
+    const statusBannerIcon = statusBanner ? statusBanner.querySelector('.status-banner__icon') : null;
+    const statusBannerText = statusBanner ? statusBanner.querySelector('.status-banner__text') : null;
+    const statusBannerClose = statusBanner ? statusBanner.querySelector('.status-banner__close') : null;
+    const progressSteps = Array.from(document.querySelectorAll('.progress-tracker__step'));
 
     let currentBookData = null;
+    let progressTimers = [];
+    let progressActiveIndex = 0;
 
-    // --- Functions ---
+    const progressMessages = [
+        { index: 0, message: 'Weaving the perfect story arc…' },
+        { index: 1, message: 'Designing a lovable main character…' },
+        { index: 2, message: 'Painting colourful scenes for each page…' },
+        { index: 3, message: 'Adding the finishing touches to your book…' }
+    ];
 
-    // Fetch and populate both text and image models
+    statusBannerClose?.addEventListener('click', () => {
+        statusBanner?.classList.add('hidden');
+    });
+
+    function toggleDownloadButtons(show) {
+        const method = show ? 'remove' : 'add';
+        downloadPdfBtnMain?.classList[method]('hidden');
+        downloadPdfBtnTop?.classList[method]('hidden');
+        if (downloadPdfBtnMain) downloadPdfBtnMain.disabled = !show;
+        if (downloadPdfBtnTop) downloadPdfBtnTop.disabled = !show;
+    }
+
+    function setFormDisabled(disabled) {
+        if (!storyForm) return;
+        const controls = storyForm.querySelectorAll('textarea, select, button');
+        controls.forEach(control => {
+            if (control === downloadPdfBtnMain) return;
+            control.disabled = disabled;
+        });
+        storyForm.classList.toggle('is-disabled', disabled);
+    }
+
+    function setStatus(message, type = 'info') {
+        if (!statusBanner || !statusBannerIcon || !statusBannerText) return;
+        statusBanner.classList.remove('hidden', 'status-banner--success', 'status-banner--error');
+        const icons = { info: '✨', success: '🎉', error: '⚠️' };
+        statusBannerIcon.textContent = icons[type] || icons.info;
+        statusBannerText.textContent = message;
+        if (type === 'success') {
+            statusBanner.classList.add('status-banner--success');
+        } else if (type === 'error') {
+            statusBanner.classList.add('status-banner--error');
+        }
+    }
+
+    function resetProgress() {
+        progressSteps.forEach(step => step.classList.remove('is-active', 'is-complete', 'is-error'));
+    }
+
+    function activateProgress(index) {
+        progressSteps.forEach((step, idx) => {
+            step.classList.toggle('is-active', idx === index);
+            step.classList.toggle('is-complete', idx < index);
+            if (idx > index) {
+                step.classList.remove('is-error');
+            }
+        });
+        progressActiveIndex = index;
+    }
+
+    function startProgressAnimation() {
+        resetProgress();
+        activateProgress(0);
+        setStatus(progressMessages[0].message, 'info');
+        if (loadingText) {
+            loadingText.textContent = 'Weaving words and illustrations together…';
+        }
+        progressTimers = progressMessages.slice(1).map((item, idx) => {
+            const delay = (idx + 1) * 3500;
+            return setTimeout(() => {
+                activateProgress(item.index);
+                setStatus(item.message, 'info');
+            }, delay);
+        });
+    }
+
+    function stopProgressAnimation(success) {
+        progressTimers.forEach(clearTimeout);
+        progressTimers = [];
+        if (success) {
+            progressSteps.forEach(step => {
+                step.classList.remove('is-active', 'is-error');
+                step.classList.add('is-complete');
+            });
+        } else {
+            const active = progressSteps.find(step => step.classList.contains('is-active')) || progressSteps[progressActiveIndex];
+            if (active) {
+                active.classList.remove('is-active');
+                active.classList.add('is-error');
+            }
+        }
+    }
+
+    async function fetchWithFallback(endpoint, options = {}) {
+        let lastError = null;
+        for (let i = 0; i < API_PATHS.length; i += 1) {
+            const base = API_PATHS[i];
+            try {
+                const response = await fetch(`${base}${endpoint}`, options);
+                if (response.status === 404 && i < API_PATHS.length - 1) {
+                    lastError = new Error(`Endpoint not found at ${base}`);
+                    continue;
+                }
+                return response;
+            } catch (error) {
+                lastError = error;
+            }
+        }
+        throw lastError || new Error('Unable to reach the API.');
+    }
+
     async function populateModels() {
         try {
-            const response = await fetch('/api/models');
-            if (!response.ok) throw new Error('Failed to fetch models.');
+            setStatus('Fetching the latest Venice.ai models…', 'info');
+            const response = await fetchWithFallback('/models');
+            if (!response.ok) {
+                let message = 'Could not fetch models from Venice.ai.';
+                try {
+                    const data = await response.json();
+                    if (data?.error) message = data.error;
+                } catch (err) {
+                    console.warn('Failed to parse models error response', err);
+                }
+                throw new Error(message);
+            }
+
             const { textModels, imageModels } = await response.json();
-            
-            textModelSelect.innerHTML = ''; // Clear "Loading..."
-            if (textModels && textModels.length > 0) {
+
+            textModelSelect.innerHTML = '';
+            if (Array.isArray(textModels) && textModels.length > 0) {
                 textModels.forEach(model => {
                     const option = document.createElement('option');
                     option.value = model.id;
@@ -39,11 +164,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     textModelSelect.appendChild(option);
                 });
             } else {
-                textModelSelect.innerHTML = `<option value="">No text models found</option>`;
+                textModelSelect.innerHTML = '<option value="">No text models found</option>';
             }
 
-            imageModelSelect.innerHTML = ''; // Clear "Loading..."
-            if (imageModels && imageModels.length > 0) {
+            imageModelSelect.innerHTML = '';
+            if (Array.isArray(imageModels) && imageModels.length > 0) {
                 imageModels.forEach(model => {
                     const option = document.createElement('option');
                     option.value = model.id;
@@ -52,18 +177,160 @@ document.addEventListener('DOMContentLoaded', () => {
                     imageModelSelect.appendChild(option);
                 });
             } else {
-                imageModelSelect.innerHTML = `<option value="">No image models found</option>`;
+                imageModelSelect.innerHTML = '<option value="">No image models found</option>';
             }
 
+            setStatus('Models ready! Choose your creative combo to begin.', 'success');
         } catch (error) {
-            textModelSelect.innerHTML = `<option value="">Could not load models</option>`;
-            imageModelSelect.innerHTML = `<option value="">Could not load models</option>`;
-            console.error(error);
+            console.error('Failed to load models:', error);
+            textModelSelect.innerHTML = '<option value="">Unable to load models</option>';
+            imageModelSelect.innerHTML = '<option value="">Unable to load models</option>';
+            setStatus(`We could not reach the Venice.ai models API: ${error.message}`, 'error');
         }
     }
 
-    // Main generate button click handler
-    generateBtn.addEventListener('click', async () => {
+    function renderStoryBook(data) {
+        bookTitleEl.textContent = data.title;
+        bookCoverEl.innerHTML = '';
+        const coverImg = document.createElement('img');
+        coverImg.src = data.coverImageUrl;
+        coverImg.alt = `Cover for ${data.title}`;
+        bookCoverEl.appendChild(coverImg);
+
+        const pageImages = Array.isArray(data.pageImageUrls) ? data.pageImageUrls : [];
+        bookPagesEl.innerHTML = '';
+        data.story.forEach((pageText, index) => {
+            const pageNumber = index + 1;
+            const imageUrl = pageImages[index] || '';
+
+            const pageElement = document.createElement('div');
+            pageElement.className = 'page';
+
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'page-image-container';
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = `Illustration for page ${pageNumber}`;
+            imageContainer.appendChild(img);
+
+            const pageContent = document.createElement('div');
+            pageContent.className = 'page-content';
+
+            const header = document.createElement('div');
+            header.className = 'page-header';
+            const heading = document.createElement('h3');
+            heading.textContent = `Page ${pageNumber}`;
+            header.appendChild(heading);
+
+            const paragraph = document.createElement('p');
+            paragraph.className = 'page-text';
+            paragraph.textContent = pageText;
+
+            pageContent.append(header, paragraph);
+            pageElement.append(imageContainer, pageContent);
+            bookPagesEl.appendChild(pageElement);
+        });
+
+        storyBookDiv.classList.remove('hidden');
+    }
+
+    async function fetchImageAsBase64(url) {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    async function createPdf(data) {
+        if (!data) {
+            setStatus('Please generate a story before downloading the PDF.', 'error');
+            return;
+        }
+
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        setStatus('Compiling a printable PDF of your adventure…', 'info');
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        try {
+            const coverImgBase64 = await fetchImageAsBase64(data.coverImageUrl);
+            doc.addImage(coverImgBase64, 'JPEG', 0, 0, pageWidth, pageHeight);
+
+            for (let i = 0; i < data.story.length; i += 1) {
+                doc.addPage();
+                doc.setFillColor(255, 255, 230);
+                doc.rect(0, 0, pageWidth, pageHeight, 'F');
+                doc.setDrawColor(255, 182, 193);
+                doc.setLineWidth(1);
+                doc.rect(5, 5, pageWidth - 10, pageHeight - 10, 'S');
+
+                const pageImgBase64 = await fetchImageAsBase64(data.pageImageUrls[i]);
+                const imgSize = pageHeight / 1.8;
+                const imgX = (pageWidth - imgSize) / 2;
+                const imgY = 15;
+
+                doc.setFillColor(0, 0, 0, 0.1);
+                doc.rect(imgX + 2, imgY + 2, imgSize, imgSize, 'F');
+                doc.addImage(pageImgBase64, 'JPEG', imgX, imgY, imgSize, imgSize);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(18);
+                doc.setTextColor(0, 0, 0);
+
+                const textY = imgY + imgSize + 20;
+                const textWidth = pageWidth - 60;
+                const textX = pageWidth / 2;
+                const splitText = doc.splitTextToSize(data.story[i], textWidth);
+                doc.text(splitText, textX, textY, { align: 'center' });
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(14);
+                doc.text(`${i + 1}`, pageWidth - 25, pageHeight - 20, { align: 'center', baseline: 'middle' });
+            }
+
+            if (data.endPageImageUrl) {
+                doc.addPage();
+                doc.setFillColor(255, 255, 230);
+                doc.rect(0, 0, pageWidth, pageHeight, 'F');
+                doc.setDrawColor(255, 182, 193);
+                doc.setLineWidth(1);
+                doc.rect(5, 5, pageWidth - 10, pageHeight - 10, 'S');
+
+                const endImgBase64 = await fetchImageAsBase64(data.endPageImageUrl);
+                const endImgSize = pageHeight / 2;
+                const endImgX = (pageWidth - endImgSize) / 2;
+                const endImgY = 20;
+
+                doc.setFillColor(0, 0, 0, 0.1);
+                doc.rect(endImgX + 2, endImgY + 2, endImgSize, endImgSize, 'F');
+                doc.addImage(endImgBase64, 'JPEG', endImgX, endImgY, endImgSize, endImgSize);
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(24);
+                doc.text('Made with Lots of Love by Vivek', pageWidth / 2, endImgY + endImgSize + 30, { align: 'center' });
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(12);
+                doc.setTextColor(255, 182, 193);
+                doc.text('*', 15, 15);
+                doc.text('*', pageWidth - 15, 15);
+                doc.text('+', 15, pageHeight - 15);
+            }
+
+            doc.save(`${data.title.replace(/ /g, '_')}.pdf`);
+            setStatus('PDF ready! Check your downloads for the finished book.', 'success');
+        } catch (error) {
+            console.error('Error creating PDF:', error);
+            setStatus('Failed to create the PDF. Please try again.', 'error');
+        }
+    }
+
+    generateBtn?.addEventListener('click', async () => {
         const prompt = document.getElementById('story-prompt').value.trim();
         const gradeLevel = document.getElementById('grade-level').value;
         const language = document.getElementById('language').value;
@@ -71,198 +338,69 @@ document.addEventListener('DOMContentLoaded', () => {
         const model = textModelSelect.value;
         const imageModel = imageModelSelect.value;
 
-        if (!prompt || !model || !imageModel) {
-            alert('Please enter a prompt and select both models.');
+        if (!prompt) {
+            setStatus('Please describe your story idea before generating.', 'error');
             return;
         }
 
-        storyForm.classList.add('hidden');
-        loadingDiv.classList.remove('hidden');
+        if (!model || !imageModel) {
+            setStatus('Choose both a text model and an image model to continue.', 'error');
+            return;
+        }
+
+        toggleDownloadButtons(false);
+        setFormDisabled(true);
+        loadingDiv?.classList.remove('hidden');
         storyBookDiv.classList.add('hidden');
         currentBookData = null;
 
+        startProgressAnimation();
+
         try {
-            const response = await fetch('/api/story', {
+            const response = await fetchWithFallback('/story', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt, gradeLevel, language, artStyle, model, imageModel })
             });
-            if (!response.ok) throw new Error((await response.json()).error || 'Failed to generate book.');
-            
-            currentBookData = await response.json();
-            renderStoryBook(currentBookData);
 
-        } catch (error) {
-            console.error('Error generating story:', error);
-            alert(`Error: ${error.message}`);
-        } finally {
-            loadingDiv.classList.add('hidden');
-            storyForm.classList.remove('hidden');
-        }
-    });
-
-    // Render the generated book to the HTML
-    function renderStoryBook(data) {
-        bookTitleEl.innerText = data.title;
-        bookCoverEl.innerHTML = `<img src="${data.coverImageUrl}" alt="Cover for ${data.title}">`;
-        bookPagesEl.innerHTML = ''; // Clear old pages
-        
-        data.story.forEach((pageText, index) => {
-            const pageNumber = index + 1;
-            const imageUrl = data.pageImageUrls[index];
-            const pageElement = document.createElement('div');
-            pageElement.className = 'page';
-            pageElement.innerHTML = `
-                <div class="page-image-container">
-                    <img src="${imageUrl}" alt="Illustration for page ${pageNumber}">
-                </div>
-                <div class="page-content">
-                    <div class="page-header"><h3>Page ${pageNumber}</h3></div>
-                    <p class="page-text">${pageText}</p>
-                </div>`;
-            bookPagesEl.appendChild(pageElement);
-        });
-
-        storyBookDiv.classList.remove('hidden');
-        downloadPdfBtn.classList.remove('hidden');
-    }
-
-    // PDF Download button click handler
-    downloadPdfBtn.addEventListener('click', () => {
-        if (!currentBookData) return alert("Please generate a story first!");
-        createPdf(currentBookData);
-    });
-
-    // Final PDF generation with all layout improvements
-    async function createPdf(data) {
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-        alert("Generating final PDF... Please wait for the download.");
-
-        const fetchImageAsBase64 = async (url) => {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        };
-
-        // Use built-in fonts for reliability
-        console.log("Available fonts:", doc.getFontList());
-
-        const page_width = doc.internal.pageSize.getWidth();
-        const page_height = doc.internal.pageSize.getHeight();
-
-        try {
-            // Page 1: Full-bleed landscape cover (title included in the generated image)
-            const coverImgBase64 = await fetchImageAsBase64(data.coverImageUrl);
-            doc.addImage(coverImgBase64, 'JPEG', 0, 0, page_width, page_height);
-
-            // Subsequent Pages with clean, simple design
-            for (let i = 0; i < data.story.length; i++) {
-                doc.addPage();
-                
-                // Simple yellow background
-                doc.setFillColor(255, 255, 230); // Light yellow tint
-                doc.rect(0, 0, page_width, page_height, 'F');
-                
-                // Simple border
-                doc.setDrawColor(255, 182, 193); // Light pink border
-                doc.setLineWidth(1);
-                doc.rect(5, 5, page_width - 10, page_height - 10, 'S');
-                
-                // Image with rounded corners effect (simulated)
-                const pageImgBase64 = await fetchImageAsBase64(data.pageImageUrls[i]);
-                const imgSize = page_height / 1.8; 
-                const imgX = (page_width - imgSize) / 2;
-                const imgY = 15;
-                
-                // Add shadow behind image
-                doc.setFillColor(0, 0, 0, 0.1);
-                doc.rect(imgX + 2, imgY + 2, imgSize, imgSize, 'F');
-                
-                // Add the main image
-                doc.addImage(pageImgBase64, 'JPEG', imgX, imgY, imgSize, imgSize);
-                
-                // No frame around image for cleaner look
-                
-                // Simple, clean story text
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(18);
-                doc.setTextColor(0, 0, 0); // Pure black text
-                
-                const textY = imgY + imgSize + 20;
-                const textWidth = page_width - 60;
-                const textX = page_width / 2;
-                
-                // Split and add the story text
-                const splitText = doc.splitTextToSize(data.story[i], textWidth);
-                doc.text(splitText, textX, textY, { align: 'center' });
-                
-                // Simple page number
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(14);
-                doc.setTextColor(0, 0, 0); // Black text
-                
-                const pageNumX = page_width - 25;
-                const pageNumY = page_height - 20;
-                doc.text(`${i + 1}`, pageNumX, pageNumY, { align: 'center', baseline: 'middle' });
+            if (!response.ok) {
+                let message = 'Failed to generate the book.';
+                try {
+                    const errorData = await response.json();
+                    if (errorData?.error) message = errorData.error;
+                    else if (errorData?.details) message = errorData.details;
+                } catch (err) {
+                    console.warn('Failed to parse story error response', err);
+                    if (response.statusText) message = response.statusText;
+                }
+                throw new Error(message);
             }
 
-            // Final "The End" page
-            doc.addPage();
-            
-            // Create a subtle warm background
-            doc.setFillColor(255, 255, 230); // Very light yellow tint (subtle)
-            doc.rect(0, 0, page_width, page_height, 'F');
-            
-            // Add subtle decorative border
-            doc.setDrawColor(255, 182, 193); // Light pink border
-            doc.setLineWidth(1);
-            doc.rect(5, 5, page_width - 10, page_height - 10, 'S');
-            
-            // "The End" image
-            const endImgBase64 = await fetchImageAsBase64(data.endPageImageUrl);
-            const endImgSize = page_height / 2; 
-            const endImgX = (page_width - endImgSize) / 2;
-            const endImgY = 20;
-            
-            // Add shadow behind image
-            doc.setFillColor(0, 0, 0, 0.1);
-            doc.rect(endImgX + 2, endImgY + 2, endImgSize, endImgSize, 'F');
-            
-            // Add the "The End" image
-            doc.addImage(endImgBase64, 'JPEG', endImgX, endImgY, endImgSize, endImgSize);
-            
-            // No frame around image for cleaner look
-            
-            // "Made with Lots of Love by Vivek" text
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(24);
-            doc.setTextColor(0, 0, 0); // Pure black text
-            
-            const signatureY = endImgY + endImgSize + 30;
-            const signatureX = page_width / 2;
-            
-            doc.text('Made with Lots of Love by Vivek', signatureX, signatureY, { align: 'center' });
-            
-            // Add small decorative elements in corners
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(12);
-            doc.setTextColor(255, 182, 193); // Light pink decorations
-            doc.text('*', 15, 15);
-            doc.text('*', page_width - 15, 15);
-            doc.text('+', 15, page_height - 15);
-
-            doc.save(`${data.title.replace(/ /g, '_')}.pdf`);
+            currentBookData = await response.json();
+            renderStoryBook(currentBookData);
+            stopProgressAnimation(true);
+            toggleDownloadButtons(true);
+            setStatus('Your illustrated adventure is ready! Download it or tweak the prompt for another.', 'success');
         } catch (error) {
-            console.error("Error creating PDF:", error);
-            alert("Failed to create PDF. See console for details.");
+            console.error('Error generating story:', error);
+            stopProgressAnimation(false);
+            setStatus(`We hit a snag: ${error.message}`, 'error');
+        } finally {
+            loadingDiv?.classList.add('hidden');
+            setFormDisabled(false);
         }
-    }
+    });
 
-    // --- Initializer ---
+    const handleDownloadClick = () => {
+        if (!currentBookData) {
+            setStatus('Generate a story before downloading the PDF.', 'error');
+            return;
+        }
+        createPdf(currentBookData);
+    };
+
+    downloadPdfBtnMain?.addEventListener('click', handleDownloadClick);
+    downloadPdfBtnTop?.addEventListener('click', handleDownloadClick);
+
     populateModels();
-}); 
+});
