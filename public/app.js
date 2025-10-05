@@ -23,6 +23,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const adultConfirmation = document.getElementById('adult-confirmation');
     const artStyleSelect = document.getElementById('art-style');
 
+    const ART_STYLE_OPTIONS = [
+        { value: 'Classic storybook', label: 'Classic storybook', defaultSelected: true },
+        { value: 'Dreamy watercolour', label: 'Dreamy watercolour' },
+        { value: 'Playful cartoon', label: 'Playful cartoon' },
+        { value: 'Studio Ghibli inspired', label: 'Studio Ghibli inspired' },
+        { value: 'Bold comic panels', label: 'Bold comic panels' },
+        { value: 'Cozy pastel picture book', label: 'Cozy pastel picture book' },
+        { value: 'Whimsical paper cutout', label: 'Whimsical paper cutout' },
+        { value: 'Vibrant pop art adventure', label: 'Vibrant pop art adventure' },
+        { value: 'Gentle pencil sketch', label: 'Gentle pencil sketch' },
+        { value: 'Magical night sky', label: 'Magical night sky' },
+        { value: 'Retro 80s picture book', label: 'Retro 80s picture book' },
+        { value: 'Mythic stained glass', label: 'Mythic stained glass' },
+        { value: 'Futuristic neon sci-fi', label: 'Futuristic neon sci-fi' },
+        { value: 'Warm claymation diorama', label: 'Warm claymation diorama' }
+    ];
+
+    if (artStyleSelect) {
+        artStyleSelect.innerHTML = '';
+        ART_STYLE_OPTIONS.forEach((optionDef, index) => {
+            const option = document.createElement('option');
+            option.value = optionDef.value;
+            option.textContent = optionDef.label;
+            if (optionDef.defaultSelected || (!ART_STYLE_OPTIONS.some(opt => opt.defaultSelected) && index === 0)) {
+                option.selected = true;
+            }
+            artStyleSelect.appendChild(option);
+        });
+    }
+
     const statusBanner = document.getElementById('status-banner');
     const statusBannerIcon = statusBanner ? statusBanner.querySelector('.status-banner__icon') : null;
     const statusBannerText = statusBanner ? statusBanner.querySelector('.status-banner__text') : null;
