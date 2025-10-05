@@ -12,137 +12,227 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-
-    <div class="container">
-        <h1>Children's Book Generator</h1>
-        
-        <div id="story-form">
-            <div class="form-group">
-                <label for="story-prompt">What is the story about?</label>
-                <textarea id="story-prompt" rows="3" placeholder="e.g., a curious chameleon who learns to change colors"></textarea>
+    <div class="page-wrapper">
+        <header class="hero">
+            <div class="hero__content">
+                <p class="hero__eyebrow">Powered by Venice.ai</p>
+                <h1>Create dazzling children's storybooks in minutes</h1>
+                <p class="hero__subtitle">Shape a prompt, choose an art style, and watch a full 8-page adventure spring to life with custom illustrations.</p>
+                <ul class="hero__highlights">
+                    <li>🎨 35+ curated illustration styles</li>
+                    <li>📖 Grade-aware writing guidance</li>
+                    <li>✨ Instant, shareable PDF downloads</li>
+                </ul>
             </div>
-
-            <div class="form-group">
-                <label for="grade-level">What grade level?</label>
-                <select id="grade-level">
-                    <option value="1">1st Grade</option>
-                    <option value="2">2nd Grade</option>
-                    <option value="3" selected>3rd Grade</option>
-                    <option value="4">4th Grade</option>
-                    <option value="5">5th Grade</option>
-                </select>
+            <div class="hero__art" aria-hidden="true">
+                <div class="hero__planet"></div>
+                <div class="hero__rocket"></div>
+                <div class="hero__stars">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </div>
+        </header>
 
-            <div class="form-group">
-                <label for="language">What language?</label>
-                <select id="language">
-                    <option value="English" selected>English</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="French">French</option>
-                    <option value="German">German</option>
-                    <option value="Hindi">Hindi</option>
-                    <option value="Gujarati">Gujarati</option>
-                </select>
-            </div>
+        <main class="layout">
+            <section class="card card--form">
+                <div class="card__header">
+                    <h2>Plan your story</h2>
+                    <p>Fill in the details below and we'll orchestrate the writing, character design, and artwork for you.</p>
+                </div>
 
-            <div class="form-group">
-                <label for="text-model">Text Generation Model</label>
-                <select id="text-model">
-                    <option value="">Loading Models...</option>
-                </select>
-            </div>
+                <div id="status-banner" class="status-banner hidden" role="status" aria-live="polite">
+                    <span class="status-banner__icon" aria-hidden="true">✨</span>
+                    <span class="status-banner__text">Let's make something magical.</span>
+                    <button type="button" class="status-banner__close" aria-label="Dismiss status message">×</button>
+                </div>
 
-            <div class="form-group">
-                <label for="image-model">Image Generation Model</label>
-                <select id="image-model">
-                    <option value="">Loading Models...</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="art-style">Illustration Style</label>
-                <select id="art-style">
-                    <optgroup label="Classic Styles">
-                        <option value="whimsical and colorful watercolor">Watercolor</option>
-                        <option value="classic cartoon">Classic Cartoon</option>
-                        <option value="Pixar 3D animation style">3D Animation</option>
-                        <option value="storybook pencil sketch">Pencil Sketch</option>
-                    </optgroup>
-                    
-                    <optgroup label="Japanese Styles">
-                        <option value="Studio Ghibli anime style" selected>Studio Ghibli</option>
-                        <option value="traditional Japanese ukiyo-e woodblock print style">Ukiyo-e (Japanese Woodblock)</option>
-                        <option value="kawaii cute Japanese manga style">Kawaii Manga</option>
-                        <option value="traditional Japanese sumi-e ink painting style">Sumi-e (Japanese Ink)</option>
-                    </optgroup>
-                    
-                    <optgroup label="Indian Styles">
-                        <option value="traditional Indian Warli tribal art style with simple geometric figures">Warli (Indian Tribal)</option>
-                        <option value="vibrant Indian Madhubani folk art style with intricate patterns">Madhubani (Indian Folk)</option>
-                        <option value="colorful Indian Rajasthani miniature painting style">Rajasthani Miniature</option>
-                        <option value="traditional Indian Kalamkari hand-painted textile style">Kalamkari (Indian Textile)</option>
-                    </optgroup>
-                    
-                    <optgroup label="Mexican & Latin American">
-                        <option value="vibrant Mexican Day of the Dead style with colorful skulls and marigolds">Día de los Muertos</option>
-                        <option value="traditional Mexican Talavera pottery art style with blue and white patterns">Talavera (Mexican Pottery)</option>
-                        <option value="colorful Mexican folk art Oaxacan style">Oaxacan Folk Art</option>
-                        <option value="vibrant Brazilian cordel literature illustration style">Brazilian Cordel</option>
-                    </optgroup>
-                    
-                    <optgroup label="Russian & Eastern European">
-                        <option value="Ivan Bilibin Russian fairy tale illustration style with intricate borders">Ivan Bilibin (Russian)</option>
-                        <option value="traditional Russian Palekh lacquer miniature painting style">Palekh (Russian Lacquer)</option>
-                        <option value="colorful Russian Khokhloma folk art style with golden patterns">Khokhloma (Russian Folk)</option>
-                        <option value="traditional Ukrainian Petrykivka decorative painting style">Petrykivka (Ukrainian)</option>
-                    </optgroup>
-                    
-                    <optgroup label="African Styles">
-                        <option value="traditional African Ndebele geometric art style with bold patterns">Ndebele (South African)</option>
-                        <option value="vibrant West African Kente cloth pattern style">Kente (West African)</option>
-                        <option value="traditional Ethiopian illuminated manuscript style">Ethiopian Manuscript</option>
-                        <option value="colorful Moroccan zellige tile mosaic art style">Moroccan Zellige</option>
-                    </optgroup>
-                    
-                    <optgroup label="Middle Eastern & Persian">
-                        <option value="traditional Persian miniature painting style with intricate details">Persian Miniature</option>
-                        <option value="Islamic geometric art style with complex patterns">Islamic Geometric</option>
-                        <option value="traditional Turkish Ebru marbled paper art style">Turkish Ebru</option>
-                        <option value="ornate Arabic calligraphy art style">Arabic Calligraphy</option>
-                    </optgroup>
-                    
-                    <optgroup label="Other World Styles">
-                        <option value="traditional Chinese brush painting style">Chinese Brush Painting</option>
-                        <option value="Aboriginal Australian dot painting style">Aboriginal Dot Painting</option>
-                        <option value="traditional Scandinavian rosemaling decorative art style">Scandinavian Rosemaling</option>
-                        <option value="vibrant Guatemalan textile weaving art style">Guatemalan Textile</option>
-                        <option value="traditional Inuit stone carving art style">Inuit Stone Carving</option>
-                        <option value="colorful Peruvian Andean folk art style">Peruvian Andean Folk</option>
-                    </optgroup>
-                </select>
-            </div>
+                <ul id="progress-tracker" class="progress-tracker">
+                    <li class="progress-tracker__step" data-step="story">
+                        <span class="progress-tracker__icon">1</span>
+                        <div>
+                            <h3>Story spark</h3>
+                            <p>We shape your prompt into an age-appropriate 8-page tale.</p>
+                        </div>
+                    </li>
+                    <li class="progress-tracker__step" data-step="character">
+                        <span class="progress-tracker__icon">2</span>
+                        <div>
+                            <h3>Hero blueprint</h3>
+                            <p>A consistent main character is designed to guide every page.</p>
+                        </div>
+                    </li>
+                    <li class="progress-tracker__step" data-step="art">
+                        <span class="progress-tracker__icon">3</span>
+                        <div>
+                            <h3>Illustration magic</h3>
+                            <p>Each page receives a bespoke illustration in your chosen style.</p>
+                        </div>
+                    </li>
+                    <li class="progress-tracker__step" data-step="finalize">
+                        <span class="progress-tracker__icon">4</span>
+                        <div>
+                            <h3>Book polish</h3>
+                            <p>Cover, pages, and finale art are bundled into a keepsake.</p>
+                        </div>
+                    </li>
+                </ul>
 
-            <button id="generate-btn">Generate Full Story Book</button>
-            <button id="download-pdf-btn" class="hidden">Download Book as PDF</button>
-        </div>
+                <form id="story-form" class="form-grid" novalidate>
+                    <div class="form-group form-group--wide">
+                        <label for="story-prompt">What is the story about?</label>
+                        <textarea id="story-prompt" rows="3" placeholder="e.g., a curious chameleon who learns to change colors" required></textarea>
+                        <p class="helper-text">The richer the prompt, the more vivid the journey. Mention emotions, locations, or character traits for extra sparkle.</p>
+                    </div>
 
-        <div id="loading" class="hidden">
-            <div class="spinner"></div>
-            <p>Generating your complete book with a cover and 8 pages of illustrations. This may take a minute...</p>
-        </div>
+                    <div class="form-group">
+                        <label for="grade-level">What grade level?</label>
+                        <select id="grade-level">
+                            <option value="1">1st Grade</option>
+                            <option value="2">2nd Grade</option>
+                            <option value="3" selected>3rd Grade</option>
+                            <option value="4">4th Grade</option>
+                            <option value="5">5th Grade</option>
+                        </select>
+                    </div>
 
-        <div id="story-book" class="hidden">
-            <h2 id="book-title"></h2>
-            <div id="book-cover"></div>
-            <div id="book-pages"></div>
-        </div>
+                    <div class="form-group">
+                        <label for="language">What language?</label>
+                        <select id="language">
+                            <option value="English" selected>English</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="French">French</option>
+                            <option value="German">German</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="Gujarati">Gujarati</option>
+                        </select>
+                    </div>
 
+                    <div class="form-group">
+                        <label for="text-model">Text Generation Model</label>
+                        <select id="text-model">
+                            <option value="">Loading Models...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="image-model">Image Generation Model</label>
+                        <select id="image-model">
+                            <option value="">Loading Models...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group form-group--wide">
+                        <label for="art-style">Illustration Style</label>
+                        <select id="art-style">
+                            <optgroup label="Classic Styles">
+                                <option value="whimsical and colorful watercolor">Watercolor</option>
+                                <option value="classic cartoon">Classic Cartoon</option>
+                                <option value="Pixar 3D animation style">3D Animation</option>
+                                <option value="storybook pencil sketch">Pencil Sketch</option>
+                            </optgroup>
+
+                            <optgroup label="Japanese Styles">
+                                <option value="Studio Ghibli anime style" selected>Studio Ghibli</option>
+                                <option value="traditional Japanese ukiyo-e woodblock print style">Ukiyo-e (Japanese Woodblock)</option>
+                                <option value="kawaii cute Japanese manga style">Kawaii Manga</option>
+                                <option value="traditional Japanese sumi-e ink painting style">Sumi-e (Japanese Ink)</option>
+                            </optgroup>
+
+                            <optgroup label="Indian Styles">
+                                <option value="traditional Indian Warli tribal art style with simple geometric figures">Warli (Indian Tribal)</option>
+                                <option value="vibrant Indian Madhubani folk art style with intricate patterns">Madhubani (Indian Folk)</option>
+                                <option value="colorful Indian Rajasthani miniature painting style">Rajasthani Miniature</option>
+                                <option value="traditional Indian Kalamkari hand-painted textile style">Kalamkari (Indian Textile)</option>
+                            </optgroup>
+
+                            <optgroup label="Mexican & Latin American">
+                                <option value="vibrant Mexican Day of the Dead style with colorful skulls and marigolds">Día de los Muertos</option>
+                                <option value="traditional Mexican Talavera pottery art style with blue and white patterns">Talavera (Mexican Pottery)</option>
+                                <option value="colorful Mexican folk art Oaxacan style">Oaxacan Folk Art</option>
+                                <option value="vibrant Brazilian cordel literature illustration style">Brazilian Cordel</option>
+                            </optgroup>
+
+                            <optgroup label="Russian & Eastern European">
+                                <option value="Ivan Bilibin Russian fairy tale illustration style with intricate borders">Ivan Bilibin (Russian)</option>
+                                <option value="traditional Russian Palekh lacquer miniature painting style">Palekh (Russian Lacquer)</option>
+                                <option value="colorful Russian Khokhloma folk art style with golden patterns">Khokhloma (Russian Folk)</option>
+                                <option value="traditional Ukrainian Petrykivka decorative painting style">Petrykivka (Ukrainian)</option>
+                            </optgroup>
+
+                            <optgroup label="African Styles">
+                                <option value="traditional African Ndebele geometric art style with bold patterns">Ndebele (South African)</option>
+                                <option value="vibrant West African Kente cloth pattern style">Kente (West African)</option>
+                                <option value="traditional Ethiopian illuminated manuscript style">Ethiopian Manuscript</option>
+                                <option value="colorful Moroccan zellige tile mosaic art style">Moroccan Zellige</option>
+                            </optgroup>
+
+                            <optgroup label="Middle Eastern & Persian">
+                                <option value="traditional Persian miniature painting style with intricate details">Persian Miniature</option>
+                                <option value="Islamic geometric art style with complex patterns">Islamic Geometric</option>
+                                <option value="traditional Turkish Ebru marbled paper art style">Turkish Ebru</option>
+                                <option value="ornate Arabic calligraphy art style">Arabic Calligraphy</option>
+                            </optgroup>
+
+                            <optgroup label="Other World Styles">
+                                <option value="traditional Chinese brush painting style">Chinese Brush Painting</option>
+                                <option value="Aboriginal Australian dot painting style">Aboriginal Dot Painting</option>
+                                <option value="traditional Scandinavian rosemaling decorative art style">Scandinavian Rosemaling</option>
+                                <option value="vibrant Guatemalan textile weaving art style">Guatemalan Textile</option>
+                                <option value="traditional Inuit stone carving art style">Inuit Stone Carving</option>
+                                <option value="colorful Peruvian Andean folk art style">Peruvian Andean Folk</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="generate-btn" class="btn btn--primary">
+                            <span class="btn__sparkle" aria-hidden="true"></span>
+                            Generate full storybook
+                        </button>
+                        <button type="button" id="download-pdf-btn" class="btn btn--secondary hidden">Download book as PDF</button>
+                    </div>
+                </form>
+
+                <div id="loading" class="loading hidden" aria-live="polite">
+                    <div class="loading__spinner"></div>
+                    <p class="loading__text">Weaving words and illustrations together…</p>
+                </div>
+            </section>
+
+            <aside class="card card--tips">
+                <h2>Tips for magical adventures</h2>
+                <ul class="tips-list">
+                    <li><strong>Set the scene:</strong> Mention where the story takes place to guide the illustrations.</li>
+                    <li><strong>Add emotion:</strong> Describe how characters feel so the narrative can lean into the mood.</li>
+                    <li><strong>Define the goal:</strong> A clear challenge or dream helps the story find a satisfying ending.</li>
+                </ul>
+                <div class="callout">
+                    <h3>New! Progress tracker</h3>
+                    <p>Follow each stage of the creative pipeline so you always know what's happening behind the scenes.</p>
+                </div>
+            </aside>
+
+            <section id="story-book" class="card card--story hidden" aria-live="polite">
+                <div class="story-header">
+                    <div>
+                        <p class="story-meta">Your illustrated adventure</p>
+                        <h2 id="book-title"></h2>
+                    </div>
+                    <button type="button" id="download-pdf-btn-top" class="btn btn--secondary hidden">Download PDF</button>
+                </div>
+                <div id="book-cover" class="book-cover"></div>
+                <div id="book-pages" class="book-pages"></div>
+            </section>
+        </main>
+
+        <footer class="venice-credit">
+            <p>Powered by Venice.ai</p>
+        </footer>
     </div>
-
-    <footer class="venice-credit">
-        <p>Powered by Venice.ai</p>
-    </footer>
 
     <script src="app.js"></script>
 </body>
-</html> 
+</html>
