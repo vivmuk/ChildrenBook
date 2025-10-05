@@ -1,6 +1,11 @@
 const axios = require('axios');
 
 const VENICE_API_KEY = 'ntmhtbP2fr_pOQsmuLPuN_nm6lm2INWKiNcvrdEfEC';
+const {
+    isAllowedImageModel,
+    enforceSafeImageModel,
+    buildSafeImagePayload,
+} = require('../../safety-config');
 
 async function generateImageForText(text, artStyle, apiKey, imageModel, characterDescription, size = "1024x1024") {
     const promptLimit = imageModel && imageModel.includes('flux') ? 2000 : 1400;
@@ -17,13 +22,15 @@ async function generateImageForText(text, artStyle, apiKey, imageModel, characte
         console.log(`Truncating long image prompt to ${promptLimit} chars...`);
         imagePrompt = imagePrompt.substring(0, promptLimit);
     }
-    const imageResponse = await axios.post('https://api.venice.ai/api/v1/images/generations', {
-        model: imageModel || 'venice-sd35',
+    const safeModel = enforceSafeImageModel(imageModel);
+    const payload = buildSafeImagePayload({
         prompt: imagePrompt,
         n: 1,
-        size: size,
-        response_format: 'url'
-    }, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+        size,
+        response_format: 'url',
+    }, safeModel);
+
+    const imageResponse = await axios.post('https://api.venice.ai/api/v1/images/generations', payload, { headers: { 'Authorization': `Bearer ${apiKey}` } });
     return imageResponse.data.data[0].url;
 }
 
@@ -54,6 +61,10 @@ exports.handler = async function (event, context) {
 
         if (!prompt) {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'A story prompt is required.' }) };
+        }
+
+        if (!isAllowedImageModel(imageModel)) {
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Please select a permitted safe Venice.ai image model.' }) };
         }
 
         const storySystemPrompt = `
@@ -99,16 +110,21 @@ You are a world-class children's book author. Your task is to write a unique, ca
         console.log("Character Description:", characterDescription);
 
         // 3. Generate all images with the character description
-        console.log(`Generating all illustrations with image model: ${imageModel}...`);
-        const coverPromise = generateImageForText(`A beautiful book cover for a story titled "${title}"`, artStyle, VENICE_API_KEY, imageModel, characterDescription, "1792x1024");
-        const pageImagePromises = story.map(pageText => generateImageForText(pageText, artStyle, VENICE_API_KEY, imageModel, characterDescription, "1024x1024"));
-        const [coverImageUrl, ...pageImageUrls] = await Promise.all([coverPromise, ...pageImagePromises]);
+        const safeImageModel = enforceSafeImageModel(imageModel);
+        console.log(`Generating all illustrations with image model: ${safeImageModel}...`);
+        const coverPromise = generateImageForText(`A beautiful book cover for a story titled "${title}"`, artStyle, VENICE_API_KEY, safeImageModel, characterDescription, "1792x1024");
+        const pageImagePromises = story.map(pageText => generateImageForText(pageText, artStyle, VENICE_API_KEY, safeImageModel, characterDescription, "1024x1024"));
+        const endPagePromise = generateImageForText(`A beautiful "The End" illustration that matches the theme and style of the story "${title}". Show a magical, whimsical "The End" sign or text integrated naturally into a scene that reflects the story's mood and setting.`, artStyle, VENICE_API_KEY, safeImageModel, characterDescription, "1024x1024");
+        const allImages = await Promise.all([coverPromise, ...pageImagePromises, endPagePromise]);
+        const coverImageUrl = allImages[0];
+        const pageImageUrls = allImages.slice(1, -1);
+        const endPageImageUrl = allImages[allImages.length - 1];
         console.log("All images generated successfully.");
 
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ title, story, coverImageUrl, pageImageUrls }),
+            body: JSON.stringify({ title, story, coverImageUrl, pageImageUrls, endPageImageUrl }),
         };
 
     } catch (error) {

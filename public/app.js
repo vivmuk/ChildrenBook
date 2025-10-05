@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bookPagesEl = document.getElementById('book-pages');
     const textModelSelect = document.getElementById('text-model');
     const imageModelSelect = document.getElementById('image-model');
+    const adultConfirmation = document.getElementById('adult-confirmation');
     const statusBanner = document.getElementById('status-banner');
     const statusBannerIcon = statusBanner ? statusBanner.querySelector('.status-banner__icon') : null;
     const statusBannerText = statusBanner ? statusBanner.querySelector('.status-banner__text') : null;
@@ -53,10 +54,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const controls = storyForm.querySelectorAll('textarea, select, button');
         controls.forEach(control => {
             if (control === downloadPdfBtnMain) return;
-            control.disabled = disabled;
+            if (control === generateBtn && !disabled && adultConfirmation) {
+                control.disabled = !adultConfirmation.checked;
+            } else {
+                control.disabled = disabled;
+            }
         });
         storyForm.classList.toggle('is-disabled', disabled);
     }
+
+    function enforceAdultConfirmation() {
+        if (!generateBtn) return;
+        if (adultConfirmation) {
+            generateBtn.disabled = !adultConfirmation.checked;
+        }
+    }
+
+    adultConfirmation?.addEventListener('change', () => {
+        enforceAdultConfirmation();
+    });
+
+    enforceAdultConfirmation();
 
     function setStatus(message, type = 'info') {
         if (!statusBanner || !statusBannerIcon || !statusBannerText) return;
@@ -176,6 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (model.id === 'venice-sd35') option.selected = true;
                     imageModelSelect.appendChild(option);
                 });
+                if (!imageModelSelect.value) {
+                    imageModelSelect.value = imageModels[0].id;
+                }
             } else {
                 imageModelSelect.innerHTML = '<option value="">No image models found</option>';
             }
@@ -340,6 +361,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!prompt) {
             setStatus('Please describe your story idea before generating.', 'error');
+            return;
+        }
+
+        if (!adultConfirmation?.checked) {
+            setStatus('Please confirm you are an adult supervising this experience for kids.', 'error');
+            adultConfirmation?.focus();
             return;
         }
 

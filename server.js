@@ -13,6 +13,12 @@ app.use(express.static('public'));
 
 // Venice.ai API Key
 const VENICE_API_KEY = 'ntmhtbP2fr_pOQsmuLPuN_nm6lm2INWKiNcvrdEfEC';
+const {
+    SAFE_IMAGE_MODEL_IDS,
+    isAllowedImageModel,
+    enforceSafeImageModel,
+    buildSafeImagePayload,
+} = require('./safety-config');
 
 // Helper function for image generation
 async function generateImageForText(text, artStyle, imageModel, characterDescription, isCover = false, title = '', size = "1024x1024") {
@@ -44,13 +50,16 @@ async function generateImageForText(text, artStyle, imageModel, characterDescrip
         imagePrompt = imagePrompt.substring(0, promptLimit);
     }
 
-    const imageResponse = await axios.post('https://api.venice.ai/api/v1/images/generations', {
-        model: imageModel || 'venice-sd35',
+    const imageRequestPayload = buildSafeImagePayload({
         prompt: imagePrompt,
         n: 1,
-        size: size,
-        response_format: 'url'
-    }, { headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` } });
+        size,
+        response_format: 'url',
+    }, imageModel);
+
+    const imageResponse = await axios.post('https://api.venice.ai/api/v1/images/generations', imageRequestPayload, {
+        headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` },
+    });
 
     return imageResponse.data.data[0].url;
 }
@@ -101,7 +110,10 @@ app.get('/api/models', async (req, res) => {
         const [textResponse, imageResponse] = await Promise.all([textModelPromise, imageModelPromise]);
 
         const textModels = textResponse.data.data.filter(m => m.model_spec && !m.model_spec.offline);
-        const imageModels = imageResponse.data.data.filter(m => m.model_spec && !m.model_spec.offline);
+        const availableSafeModels = imageResponse.data.data.filter(m => m.model_spec && !m.model_spec.offline && isAllowedImageModel(m.id));
+        const imageModels = SAFE_IMAGE_MODEL_IDS
+            .map(id => availableSafeModels.find(model => model.id === id))
+            .filter(Boolean);
 
         res.json({ textModels, imageModels });
     } catch (error) {
@@ -117,6 +129,10 @@ app.post('/api/story', async (req, res) => {
 
         if (!prompt) {
             return res.status(400).json({ error: 'A story prompt is required.' });
+        }
+
+        if (!isAllowedImageModel(imageModel)) {
+            return res.status(400).json({ error: 'Please select a permitted safe Venice.ai image model.' });
         }
 
         console.log(`Starting complete book generation for: "${prompt}"`);
@@ -158,10 +174,11 @@ You are a world-class children's book author. Your task is to write a unique, ca
         console.log("Character Description:", characterDescription);
 
         // 3. Generate all images with the character description
-        console.log(`Generating all illustrations with image model: ${imageModel}...`);
-        const coverPromise = generateImageForText(`A beautiful book cover for a story titled "${title}"`, artStyle, imageModel, characterDescription, true, title, "1792x1024");
-        const pageImagePromises = story.map(pageText => generateImageForText(pageText, artStyle, imageModel, characterDescription, false, '', "1024x1024"));
-        const endPagePromise = generateImageForText(`A beautiful "The End" illustration that matches the theme and style of the story "${title}". Show a magical, whimsical "The End" sign or text integrated naturally into a scene that reflects the story's mood and setting.`, artStyle, imageModel, characterDescription, false, '', "1024x1024");
+        const safeImageModel = enforceSafeImageModel(imageModel);
+        console.log(`Generating all illustrations with image model: ${safeImageModel}...`);
+        const coverPromise = generateImageForText(`A beautiful book cover for a story titled "${title}"`, artStyle, safeImageModel, characterDescription, true, title, "1792x1024");
+        const pageImagePromises = story.map(pageText => generateImageForText(pageText, artStyle, safeImageModel, characterDescription, false, '', "1024x1024"));
+        const endPagePromise = generateImageForText(`A beautiful "The End" illustration that matches the theme and style of the story "${title}". Show a magical, whimsical "The End" sign or text integrated naturally into a scene that reflects the story's mood and setting.`, artStyle, safeImageModel, characterDescription, false, '', "1024x1024");
         const allImages = await Promise.all([coverPromise, ...pageImagePromises, endPagePromise]);
         const coverImageUrl = allImages[0];
         const pageImageUrls = allImages.slice(1, -1);

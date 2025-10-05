@@ -1,6 +1,10 @@
 const axios = require('axios');
 
 const VENICE_API_KEY = 'ntmhtbP2fr_pOQsmuLPuN_nm6lm2INWKiNcvrdEfEC';
+const {
+    SAFE_IMAGE_MODEL_IDS,
+    isAllowedImageModel,
+} = require('../../safety-config');
 
 exports.handler = async function (event, context) {
     // Add CORS headers
@@ -28,7 +32,12 @@ exports.handler = async function (event, context) {
         const [textResponse, imageResponse] = await Promise.all([textModelPromise, imageModelPromise]);
 
         const textModels = textResponse.data.data.filter(m => m.model_spec && !m.model_spec.offline);
-        const imageModels = imageResponse.data.data.filter(m => m.model_spec && !m.model_spec.offline);
+        const availableSafeModels = imageResponse.data.data.filter(
+            m => m.model_spec && !m.model_spec.offline && isAllowedImageModel(m.id)
+        );
+        const imageModels = SAFE_IMAGE_MODEL_IDS
+            .map(id => availableSafeModels.find(model => model.id === id))
+            .filter(Boolean);
 
         return {
             statusCode: 200,
