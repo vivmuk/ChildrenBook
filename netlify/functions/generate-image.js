@@ -1,6 +1,11 @@
 const axios = require('axios');
 
 const VENICE_API_KEY = 'ntmhtbP2fr_pOQsmuLPuN_nm6lm2INWKiNcvrdEfEC';
+const {
+    isAllowedImageModel,
+    enforceSafeImageModel,
+    buildSafeImagePayload,
+} = require('../../safety-config');
 
 exports.handler = async function (event, context) {
     // Add CORS headers
@@ -29,6 +34,10 @@ exports.handler = async function (event, context) {
 
         if (!text) {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Text is required for image generation.' }) };
+        }
+
+        if (!isAllowedImageModel(imageModel)) {
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Please select a permitted safe Venice.ai image model.' }) };
         }
 
         // Generate image prompt
@@ -61,13 +70,15 @@ exports.handler = async function (event, context) {
 
         // Generate the actual image
         const size = isCover ? "1792x1024" : "1024x1024";
-        const imageResponse = await axios.post('https://api.venice.ai/api/v1/images/generations', {
-            model: imageModel || 'venice-sd35',
+        const safeModel = enforceSafeImageModel(imageModel);
+        const payload = buildSafeImagePayload({
             prompt: imagePrompt,
             n: 1,
-            size: size,
-            response_format: 'url'
-        }, { 
+            size,
+            response_format: 'url',
+        }, safeModel);
+
+        const imageResponse = await axios.post('https://api.venice.ai/api/v1/images/generations', payload, {
             headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` },
             timeout: 20000
         });

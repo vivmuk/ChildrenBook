@@ -4,23 +4,19 @@ An AI-powered application that creates personalized children's books with engagi
 
 ## ✨ Features
 
-- **🎯 Grade-Level Appropriate Content**: Automatically adjusts vocabulary and complexity for reading levels 1-8
-- **🎨 Beautiful Illustrations**: High-quality images generated using Venice.ai's Flux model for each story page
-- **📚 Story Concepts**: Generate multiple story ideas and choose your favorite
-- **🎭 Character Customization**: Specify your own character or let AI create one
-- **📄 PDF Export**: Download your finished story as a beautiful PDF
-- **🔄 Image Regeneration**: Don't like an illustration? Regenerate it with one click
-- **📱 Responsive Design**: Works beautifully on desktop, tablet, and mobile devices
+- **🎯 Grade-Level Appropriate Content**: Automatically adjusts vocabulary and complexity for elementary reading levels.
+- **🎨 Watermarked Illustrations**: Every image request is forced through Venice.ai safe-mode models with visible watermarks (venice-sd35, hidream, flux-dev, qwen-image, wai-Illustrious).
+- **🛡️ Adult-in-the-Loop Safeguards**: Built-in adult confirmation, safety messaging, and Venice.ai policy compliance for creating content intended for children.
+- **📄 PDF Export**: Download your finished story as a beautiful PDF keepsake.
+- **📱 Responsive Design**: Works beautifully on desktop, tablet, and mobile devices.
 
 ## 🏗️ Architecture
 
 ### Backend
-- **Express.js** server with comprehensive API endpoints
-- **Venice.ai Integration** using OpenAI-compatible SDK
-- **Qwen 2.5 QWQ 32B** reasoning model for story generation and orchestration
-- **Flux Dev** model for high-quality image generation
-- **Flesch-Kincaid** readability analysis for grade-level compliance
-- **Rate limiting** and input validation for security
+- **Express.js** server with comprehensive API endpoints.
+- **Venice.ai Integration** with centralized image safety helpers that enforce safe mode and watermarks.
+- **Mistral and Venice text models** for story generation and character consistency.
+- **Request validation** and descriptive error messages to keep the workflow stable.
 
 ### Frontend
 - **Vanilla JavaScript** with modern ES6+ features
@@ -29,9 +25,9 @@ An AI-powered application that creates personalized children's books with engagi
 - **Progressive Web App** features for offline support
 
 ### Services
-- **StoryService**: Handles story concept generation, full story creation, and reading level adjustments
-- **ImageService**: Manages image generation with character consistency and art style selection
-- **ReadabilityService**: Analyzes and ensures appropriate reading levels using Flesch-Kincaid metrics
+- **Story orchestration**: Coordinates story text, character descriptions, and illustration prompts.
+- **Image generation**: Applies consistent art direction with Venice.ai's approved safe models.
+- **Safety utilities**: Shared helpers guarantee safe-mode, watermark visibility, and model validation across runtimes.
 
 ## 🚀 Quick Start
 
@@ -71,46 +67,38 @@ npm start    # Production mode
 
 ## 📖 How to Use
 
-### Step 1: Create Story Concepts
-1. Enter a **story theme** (e.g., "A brave adventure", "friendship and magic")
-2. Optionally specify a **main character** (e.g., "Luna the cat")
-3. Choose a **reading level** or let AI suggest multiple levels
-4. Click **"Generate Story Concepts"**
+### Step 1: Describe Your Story
+1. Enter a **story prompt** (e.g., "A curious chameleon who learns to change colors").
+2. Choose the **grade level** and **language** for the narration.
+3. Select an **art style** and one of the approved safe image models.
+4. Confirm you are an adult supervising the experience.
 
-### Step 2: Choose Your Story
-- Review the 3 generated story concepts
-- Each shows title, synopsis, character, setting, and theme
-- Click on your favorite concept to select it
-- Click **"Create My Story Book"**
+### Step 2: Watch the Magic
+- AI writes an 8-page story tailored to the selected grade level.
+- A consistent character description is generated to guide illustrations.
+- Safe-mode Venice.ai image models paint each page plus a book cover and "The End" page.
 
-### Step 3: Watch the Magic
-- AI generates the full 8-page story with:
-  - Age-appropriate vocabulary
-  - Engaging narrative structure
-  - Beautiful illustrations for each page
-  - Consistent character design
-
-### Step 4: Enjoy Your Book
-- Read through your personalized story
-- Download as PDF for printing or sharing
-- Create a new story anytime!
+### Step 3: Enjoy Your Book
+- Review the watermarked storybook right in the browser.
+- Download everything as a printable PDF keepsake.
+- Iterate on prompts to create fresh adventures.
 
 ## 🎯 Target Audience & Use Cases
 
 ### **Parents & Guardians**
-- Create personalized bedtime stories starring their children
-- Generate educational stories for specific topics
-- Make reading time more engaging with custom content
+- Create personalized bedtime stories starring their children.
+- Generate educational stories for specific topics.
+- Review every AI-generated page before sharing with young readers.
 
 ### **Teachers & Educators**
-- Create differentiated reading materials for different skill levels
-- Generate stories for specific learning objectives
-- Provide engaging content for reluctant readers
+- Create differentiated reading materials for different skill levels.
+- Generate stories for specific learning objectives.
+- Provide engaging content for reluctant readers.
 
 ### **Young Writers**
-- Experiment with creative storytelling
-- Learn story structure and character development
-- Practice writing skills with AI assistance
+- Experiment with creative storytelling under adult guidance.
+- Learn story structure and character development.
+- Practice writing skills with AI assistance.
 
 ## 🔧 API Endpoints
 
@@ -191,10 +179,11 @@ Stories are automatically adjusted to meet Flesch-Kincaid grade level requiremen
 
 ## 🔒 Safety & Content Moderation
 
-- Built-in content safety filtering
-- Age-appropriate themes and vocabulary
-- No collection of personal data beyond first names
-- GDPR-compliant privacy handling
+- Built-in content safety filtering via Venice.ai `safe_mode` enforcement.
+- Adult confirmation and safety reminders ensure grown-ups review all output.
+- Age-appropriate themes and vocabulary tuned by grade level.
+- No collection of personal data beyond optional first names.
+- Shared safety utilities restrict image generation to the Venice.ai safe list (venice-sd35, hidream, flux-dev, qwen-image, wai-Illustrious) with mandatory safe mode and visible watermarks.
 
 ## 📊 Performance
 

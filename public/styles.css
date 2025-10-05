@@ -270,8 +270,24 @@ body {
     gap: 0.5rem;
 }
 
-.form-group label {
-    font-size: 1rem;
+.form-group--checkbox {
+    gap: 0.6rem;
+}
+
+.form-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+
+.form-checkbox input[type="checkbox"] {
+    margin-top: 0.2rem;
+    width: 1.15rem;
+    height: 1.15rem;
+    accent-color: var(--accent-strong);
+}
+
+label {
     font-weight: 600;
 }
 
@@ -432,8 +448,40 @@ textarea {
 .callout {
     background: rgba(255, 127, 165, 0.12);
     border-radius: 18px;
-    padding: 1rem;
-    border: 1px solid rgba(255, 127, 165, 0.35);
+    padding: 1.25rem;
+    background: rgba(255, 138, 167, 0.12);
+    border: 1px solid rgba(255, 138, 167, 0.3);
+}
+
+.safety-reminder {
+    margin-top: 0.5rem;
+    padding: 1.25rem;
+    border-radius: 18px;
+    background: rgba(46, 184, 114, 0.12);
+    border: 1px solid rgba(46, 184, 114, 0.25);
+}
+
+.safety-reminder h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.2rem;
+    color: var(--success);
+}
+
+.safety-reminder p {
+    margin: 0;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.callout h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+}
+
+.callout p {
+    margin: 0;
+    color: var(--text-muted);
 }
 
 .card--story {
