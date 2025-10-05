@@ -165,13 +165,61 @@ You are a world-class children's book author. Your task is to write a unique, ca
         
         // 1. Generate Story
         console.log(`Generating story with text model: ${model}...`);
-        const storyResponse = await axios.post('https://api.venice.ai/api/v1/chat/completions', {
-            model: model || 'mistral-31-24b',
-            messages: [{ role: 'system', content: storySystemPrompt }, { role: 'user', content: `The story idea is: ${prompt}` }],
-            response_format: { type: 'json_object' }
-        }, { headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` } });
 
-        const storyData = JSON.parse(storyResponse.data.choices[0].message.content);
+        const createStoryRequest = async (payloadOverrides = {}) => {
+            const payload = {
+                model: model || 'mistral-31-24b',
+                messages: [
+                    { role: 'system', content: storySystemPrompt },
+                    { role: 'user', content: `The story idea is: ${prompt}` }
+                ],
+                ...payloadOverrides,
+            };
+
+            const response = await axios.post(
+                'https://api.venice.ai/api/v1/chat/completions',
+                payload,
+                { headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` } }
+            );
+
+            return response.data.choices[0].message?.content || '';
+        };
+
+        const parseStoryJson = (content) => {
+            if (!content) {
+                throw new Error('No story content received from model.');
+            }
+
+            try {
+                return JSON.parse(content);
+            } catch (error) {
+                const jsonMatch = content.match(/```json\s*([\s\S]*?)```/i) || content.match(/```\s*([\s\S]*?)```/i);
+                if (jsonMatch) {
+                    return JSON.parse(jsonMatch[1]);
+                }
+                throw error;
+            }
+        };
+
+        let storyContent;
+        try {
+            storyContent = await createStoryRequest({ response_format: { type: 'json_object' } });
+        } catch (error) {
+            const errorDetails = error.response?.data;
+            const detailMessages = [
+                ...(errorDetails?.details?._errors || []),
+                ...(errorDetails?.issues || []).map(issue => issue?.message).filter(Boolean)
+            ].join(' ').toLowerCase();
+
+            if (detailMessages.includes('response_format is not supported')) {
+                console.warn(`Model ${model} does not support response_format JSON mode. Falling back to instruction-based parsing.`);
+                storyContent = await createStoryRequest();
+            } else {
+                throw error;
+            }
+        }
+
+        const storyData = parseStoryJson(storyContent);
         const { title, story } = storyData;
         console.log(`Successfully generated story: "${title}"`);
 
