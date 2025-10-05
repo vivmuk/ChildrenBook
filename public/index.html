@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Children's Book Generator</title>
+    <title>Story Spark | Venice.ai Children's Books</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,180 +12,107 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-    <div class="page-wrapper">
-        <header class="hero">
-            <div class="hero__content">
-                <p class="hero__eyebrow">Powered by Venice.ai</p>
-                <h1>Create dazzling children's storybooks in minutes</h1>
-                <p class="hero__subtitle">Shape a prompt, choose an art style, and watch a full 8-page adventure spring to life with custom illustrations.</p>
-                <ul class="hero__highlights">
-                    <li>🎨 35+ curated illustration styles</li>
-                    <li>📖 Grade-aware writing guidance</li>
-                    <li>✨ Instant, shareable PDF downloads</li>
-                </ul>
-            </div>
-            <div class="hero__art" aria-hidden="true">
-                <div class="hero__planet"></div>
-                <div class="hero__rocket"></div>
-                <div class="hero__stars">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
+    <div class="app-shell">
+        <header class="app-header">
+            <div class="brand">
+                <span class="brand__logo" aria-hidden="true">✨</span>
+                <div>
+                    <p class="brand__eyebrow">Powered by Venice.ai</p>
+                    <p class="brand__title">Story Spark</p>
                 </div>
             </div>
+            <button id="cta-create" class="brand__action" type="button">Create</button>
         </header>
 
-        <main class="layout">
-            <section class="card card--form">
-                <div class="card__header">
-                    <h2>Plan your story</h2>
-                    <p>Fill in the details below and we'll orchestrate the writing, character design, and artwork for you.</p>
+        <main class="app-main">
+            <section class="view view--home is-active" data-view="home">
+                <div class="home-hero">
+                    <p class="home-hero__eyebrow">Story Spark</p>
+                    <h1>Create your own story</h1>
+                    <p class="home-hero__subtitle">Craft a unique story with your child's name and preferences, and watch it come to life with beautiful illustrations.</p>
+                    <button class="btn btn--primary home-hero__cta" type="button" data-nav-target="create">
+                        <span class="btn__sparkle" aria-hidden="true"></span>
+                        Build Your Story
+                    </button>
+                    <div class="home-hero__card-grid">
+                        <article class="home-card">
+                            <h2>Story Spark</h2>
+                            <p>Tell us the heart of your tale and who it's for.</p>
+                        </article>
+                        <article class="home-card">
+                            <h2>Hero Blueprint</h2>
+                            <p>Craft the perfect protagonist for your reader.</p>
+                        </article>
+                        <article class="home-card">
+                            <h2>Illustration Magic</h2>
+                            <p>Choose an art style to bring each scene alive.</p>
+                        </article>
+                        <article class="home-card">
+                            <h2>Book Polish</h2>
+                            <p>Download a keepsake PDF with every page illustrated.</p>
+                        </article>
+                    </div>
                 </div>
+            </section>
 
-                <div id="status-banner" class="status-banner hidden" role="status" aria-live="polite">
-                    <span class="status-banner__icon" aria-hidden="true">✨</span>
-                    <span class="status-banner__text">Let's make something magical.</span>
-                    <button type="button" class="status-banner__close" aria-label="Dismiss status message">×</button>
-                </div>
+            <section class="view view--create" data-view="create" aria-labelledby="create-heading">
+                <header class="view__header">
+                    <p class="view__eyebrow">Create a book</p>
+                    <h1 id="create-heading">Craft a personalised adventure</h1>
+                    <p class="view__subtitle">Provide a prompt, choose reading preferences, and let Venice.ai weave words and illustrations together.</p>
+                </header>
 
-                <ul id="progress-tracker" class="progress-tracker">
-                    <li class="progress-tracker__step" data-step="story">
-                        <span class="progress-tracker__icon">1</span>
-                        <div>
-                            <h3>Story spark</h3>
-                            <p>We shape your prompt into an age-appropriate 8-page tale.</p>
+                <div class="create-layout">
+                    <section class="card card--form" aria-label="Story settings">
+                        <div id="status-banner" class="status-banner hidden" role="status" aria-live="polite">
+                            <span class="status-banner__icon" aria-hidden="true">✨</span>
+                            <span class="status-banner__text">Let's make something magical.</span>
+                            <button type="button" class="status-banner__close" aria-label="Dismiss status message">×</button>
                         </div>
-                    </li>
-                    <li class="progress-tracker__step" data-step="character">
-                        <span class="progress-tracker__icon">2</span>
-                        <div>
-                            <h3>Hero blueprint</h3>
-                            <p>A consistent main character is designed to guide every page.</p>
-                        </div>
-                    </li>
-                    <li class="progress-tracker__step" data-step="art">
-                        <span class="progress-tracker__icon">3</span>
-                        <div>
-                            <h3>Illustration magic</h3>
-                            <p>Each page receives a bespoke illustration in your chosen style.</p>
-                        </div>
-                    </li>
-                    <li class="progress-tracker__step" data-step="finalize">
-                        <span class="progress-tracker__icon">4</span>
-                        <div>
-                            <h3>Book polish</h3>
-                            <p>Cover, pages, and finale art are bundled into a keepsake.</p>
-                        </div>
-                    </li>
-                </ul>
 
-                <form id="story-form" class="form-grid" novalidate>
-                    <div class="form-group form-group--wide">
-                        <label for="story-prompt">What is the story about?</label>
-                        <textarea id="story-prompt" rows="3" placeholder="e.g., a curious chameleon who learns to change colors" required></textarea>
-                        <p class="helper-text">The richer the prompt, the more vivid the journey. Mention emotions, locations, or character traits for extra sparkle.</p>
-                    </div>
+                        <form id="story-form" class="form-grid" novalidate>
+                            <div class="form-group form-group--wide">
+                                <label for="story-prompt">Story spark</label>
+                                <textarea id="story-prompt" rows="3" placeholder="e.g., a curious chameleon who learns to change colors" required></textarea>
+                                <p class="helper-text">The richer the prompt, the more vivid the journey. Mention emotions, locations, or character traits for extra sparkle.</p>
+                            </div>
 
-                    <div class="form-group">
-                        <label for="grade-level">What grade level?</label>
-                        <select id="grade-level">
-                            <option value="1">1st Grade</option>
-                            <option value="2">2nd Grade</option>
-                            <option value="3" selected>3rd Grade</option>
-                            <option value="4">4th Grade</option>
-                            <option value="5">5th Grade</option>
-                        </select>
-                    </div>
+                            <div class="form-group">
+                                <label for="grade-level">Hero blueprint</label>
+                                <select id="grade-level">
+                                    <option value="1">1st Grade</option>
+                                    <option value="2">2nd Grade</option>
+                                    <option value="3" selected>3rd Grade</option>
+                                    <option value="4">4th Grade</option>
+                                    <option value="5">5th Grade</option>
+                                </select>
+                            </div>
 
-                    <div class="form-group">
-                        <label for="language">What language?</label>
-                        <select id="language">
-                            <option value="English" selected>English</option>
-                            <option value="Spanish">Spanish</option>
-                            <option value="French">French</option>
-                            <option value="German">German</option>
-                            <option value="Hindi">Hindi</option>
-                            <option value="Gujarati">Gujarati</option>
-                        </select>
-                    </div>
+                            <div class="form-group">
+                                <label for="language">Language</label>
+                                <select id="language">
+                                    <option value="English" selected>English</option>
+                                    <option value="Spanish">Spanish</option>
+                                    <option value="French">French</option>
+                                    <option value="German">German</option>
+                                    <option value="Hindi">Hindi</option>
+                                    <option value="Gujarati">Gujarati</option>
+                                </select>
+                            </div>
 
-                    <div class="form-group">
-                        <label for="text-model">Text Generation Model</label>
-                        <select id="text-model">
-                            <option value="">Loading Models...</option>
-                        </select>
-                    </div>
+                            <div class="form-group">
+                                <label for="text-model">Text Generation Model</label>
+                                <select id="text-model">
+                                    <option value="">Loading Models...</option>
+                                </select>
+                            </div>
 
-                    <div class="form-group">
-                        <label for="image-model">Image Generation Model</label>
-                        <select id="image-model">
-                            <option value="">Loading Models...</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group form-group--wide">
-                        <label for="art-style">Illustration Style</label>
-                        <select id="art-style">
-                            <optgroup label="Classic Styles">
-                                <option value="whimsical and colorful watercolor">Watercolor</option>
-                                <option value="classic cartoon">Classic Cartoon</option>
-                                <option value="Pixar 3D animation style">3D Animation</option>
-                                <option value="storybook pencil sketch">Pencil Sketch</option>
-                            </optgroup>
-
-                            <optgroup label="Japanese Styles">
-                                <option value="Studio Ghibli anime style" selected>Studio Ghibli</option>
-                                <option value="traditional Japanese ukiyo-e woodblock print style">Ukiyo-e (Japanese Woodblock)</option>
-                                <option value="kawaii cute Japanese manga style">Kawaii Manga</option>
-                                <option value="traditional Japanese sumi-e ink painting style">Sumi-e (Japanese Ink)</option>
-                            </optgroup>
-
-                            <optgroup label="Indian Styles">
-                                <option value="traditional Indian Warli tribal art style with simple geometric figures">Warli (Indian Tribal)</option>
-                                <option value="vibrant Indian Madhubani folk art style with intricate patterns">Madhubani (Indian Folk)</option>
-                                <option value="colorful Indian Rajasthani miniature painting style">Rajasthani Miniature</option>
-                                <option value="traditional Indian Kalamkari hand-painted textile style">Kalamkari (Indian Textile)</option>
-                            </optgroup>
-
-                            <optgroup label="Mexican & Latin American">
-                                <option value="vibrant Mexican Day of the Dead style with colorful skulls and marigolds">Día de los Muertos</option>
-                                <option value="traditional Mexican Talavera pottery art style with blue and white patterns">Talavera (Mexican Pottery)</option>
-                                <option value="colorful Mexican folk art Oaxacan style">Oaxacan Folk Art</option>
-                                <option value="vibrant Brazilian cordel literature illustration style">Brazilian Cordel</option>
-                            </optgroup>
-
-                            <optgroup label="Russian & Eastern European">
-                                <option value="Ivan Bilibin Russian fairy tale illustration style with intricate borders">Ivan Bilibin (Russian)</option>
-                                <option value="traditional Russian Palekh lacquer miniature painting style">Palekh (Russian Lacquer)</option>
-                                <option value="colorful Russian Khokhloma folk art style with golden patterns">Khokhloma (Russian Folk)</option>
-                                <option value="traditional Ukrainian Petrykivka decorative painting style">Petrykivka (Ukrainian)</option>
-                            </optgroup>
-
-                            <optgroup label="African Styles">
-                                <option value="traditional African Ndebele geometric art style with bold patterns">Ndebele (South African)</option>
-                                <option value="vibrant West African Kente cloth pattern style">Kente (West African)</option>
-                                <option value="traditional Ethiopian illuminated manuscript style">Ethiopian Manuscript</option>
-                                <option value="colorful Moroccan zellige tile mosaic art style">Moroccan Zellige</option>
-                            </optgroup>
-
-                            <optgroup label="Middle Eastern & Persian">
-                                <option value="traditional Persian miniature painting style with intricate details">Persian Miniature</option>
-                                <option value="Islamic geometric art style with complex patterns">Islamic Geometric</option>
-                                <option value="traditional Turkish Ebru marbled paper art style">Turkish Ebru</option>
-                                <option value="ornate Arabic calligraphy art style">Arabic Calligraphy</option>
-                            </optgroup>
-
-                            <optgroup label="Other World Styles">
-                                <option value="traditional Chinese brush painting style">Chinese Brush Painting</option>
-                                <option value="Aboriginal Australian dot painting style">Aboriginal Dot Painting</option>
-                                <option value="traditional Scandinavian rosemaling decorative art style">Scandinavian Rosemaling</option>
-                                <option value="vibrant Guatemalan textile weaving art style">Guatemalan Textile</option>
-                                <option value="traditional Inuit stone carving art style">Inuit Stone Carving</option>
-                                <option value="colorful Peruvian Andean folk art style">Peruvian Andean Folk</option>
-                            </optgroup>
-                        </select>
-                    </div>
+                            <div class="form-group">
+                                <label for="image-model">Image Generation Model</label>
+                                <select id="image-model">
+                                    <option value="">Loading Models...</option>
+                                </select>
+                            </div>
 
                     <div class="form-group form-group--wide form-group--checkbox">
                         <div class="form-checkbox">
@@ -204,22 +131,115 @@
                     </div>
                 </form>
 
-                <div id="loading" class="loading hidden" aria-live="polite">
-                    <div class="loading__spinner"></div>
-                    <p class="loading__text">Weaving words and illustrations together…</p>
+                            <div class="form-actions">
+                                <button type="button" id="generate-btn" class="btn btn--primary">
+                                    <span class="btn__sparkle" aria-hidden="true"></span>
+                                    Generate full storybook
+                                </button>
+                                <button type="button" id="download-pdf-btn" class="btn btn--secondary hidden">Download book as PDF</button>
+                            </div>
+                        </form>
+
+                        <div id="loading" class="loading hidden" aria-live="polite">
+                            <div class="loading__spinner"></div>
+                            <p class="loading__text">Weaving words and illustrations together…</p>
+                        </div>
+
+                        <ul id="progress-tracker" class="progress-tracker">
+                            <li class="progress-tracker__step" data-step="story">
+                                <span class="progress-tracker__icon">1</span>
+                                <div>
+                                    <h3>Story spark</h3>
+                                    <p>We shape your prompt into an age-appropriate 8-page tale.</p>
+                                </div>
+                            </li>
+                            <li class="progress-tracker__step" data-step="character">
+                                <span class="progress-tracker__icon">2</span>
+                                <div>
+                                    <h3>Hero blueprint</h3>
+                                    <p>A consistent main character guides every page.</p>
+                                </div>
+                            </li>
+                            <li class="progress-tracker__step" data-step="art">
+                                <span class="progress-tracker__icon">3</span>
+                                <div>
+                                    <h3>Illustration magic</h3>
+                                    <p>Each page gets bespoke artwork in your chosen style.</p>
+                                </div>
+                            </li>
+                            <li class="progress-tracker__step" data-step="finalize">
+                                <span class="progress-tracker__icon">4</span>
+                                <div>
+                                    <h3>Book polish</h3>
+                                    <p>Cover, pages, and finale art are bundled into a keepsake.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </section>
+
+                    <aside class="card card--tips" aria-label="Tips for magical adventures">
+                        <h2>Tips for magical adventures</h2>
+                        <ul class="tips-list">
+                            <li><strong>Set the scene:</strong> Mention where the story takes place to guide the illustrations.</li>
+                            <li><strong>Add emotion:</strong> Describe how characters feel so the narrative can lean into the mood.</li>
+                            <li><strong>Define the goal:</strong> A clear challenge or dream helps the story find a satisfying ending.</li>
+                        </ul>
+                        <div class="callout">
+                            <h3>Powered by Venice.ai</h3>
+                            <p>Real-time access to text and image models keeps your stories fresh and imaginative.</p>
+                        </div>
+                    </aside>
+
+                    <section id="story-book" class="card card--story hidden" aria-live="polite">
+                        <div class="story-header">
+                            <div>
+                                <p class="story-meta">Your illustrated adventure</p>
+                                <h2 id="book-title"></h2>
+                            </div>
+                            <button type="button" id="download-pdf-btn-top" class="btn btn--secondary hidden">Download PDF</button>
+                        </div>
+                        <div id="book-cover" class="book-cover"></div>
+                        <div id="book-pages" class="book-pages"></div>
+                    </section>
                 </div>
             </section>
 
-            <aside class="card card--tips">
-                <h2>Tips for magical adventures</h2>
-                <ul class="tips-list">
-                    <li><strong>Set the scene:</strong> Mention where the story takes place to guide the illustrations.</li>
-                    <li><strong>Add emotion:</strong> Describe how characters feel so the narrative can lean into the mood.</li>
-                    <li><strong>Define the goal:</strong> A clear challenge or dream helps the story find a satisfying ending.</li>
-                </ul>
-                <div class="callout">
-                    <h3>New! Progress tracker</h3>
-                    <p>Follow each stage of the creative pipeline so you always know what's happening behind the scenes.</p>
+            <section class="view view--about" data-view="about" aria-labelledby="about-heading">
+                <header class="view__header">
+                    <p class="view__eyebrow">About</p>
+                    <h1 id="about-heading">Welcome to Story Spark</h1>
+                    <p class="view__subtitle">Our magical app is designed to ignite your child's imagination and foster a love for reading through tailored stories.</p>
+                </header>
+
+                <div class="about-grid">
+                    <article class="feature-card">
+                        <div class="feature-card__icon" aria-hidden="true">🧒</div>
+                        <div>
+                            <h2>Personalised Stories</h2>
+                            <p>Make your child the star of every adventure with prompts that capture their world.</p>
+                        </div>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-card__icon" aria-hidden="true">🎨</div>
+                        <div>
+                            <h2>Diverse Illustration Styles</h2>
+                            <p>Choose from global art styles, from Studio Ghibli charm to vibrant Madhubani patterns.</p>
+                        </div>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-card__icon" aria-hidden="true">📚</div>
+                        <div>
+                            <h2>Age-Appropriate Content</h2>
+                            <p>Venice.ai automatically balances vocabulary and structure for each grade level.</p>
+                        </div>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-card__icon" aria-hidden="true">💾</div>
+                        <div>
+                            <h2>Story Library</h2>
+                            <p>Save, revisit, and share your favourite stories across devices with downloadable PDFs.</p>
+                        </div>
+                    </article>
                 </div>
                 <div class="safety-reminder" role="note">
                     <h3>Family-first safeguards</h3>
@@ -227,22 +247,42 @@
                 </div>
             </aside>
 
-            <section id="story-book" class="card card--story hidden" aria-live="polite">
-                <div class="story-header">
-                    <div>
-                        <p class="story-meta">Your illustrated adventure</p>
-                        <h2 id="book-title"></h2>
-                    </div>
-                    <button type="button" id="download-pdf-btn-top" class="btn btn--secondary hidden">Download PDF</button>
+                <div class="faq">
+                    <h2>Frequently asked questions</h2>
+                    <details>
+                        <summary>How does Story Spark work?</summary>
+                        <p>Provide a prompt, select preferences, and our Venice.ai pipeline generates the narrative, characters, and illustrations in minutes.</p>
+                    </details>
+                    <details>
+                        <summary>Is my child's information safe?</summary>
+                        <p>Absolutely. We only use the details you provide to build the story and never store sensitive information.</p>
+                    </details>
+                    <details>
+                        <summary>How can I contact support?</summary>
+                        <p>Send us an email at support@storyspark.app and our team will be happy to help.</p>
+                    </details>
+                    <details>
+                        <summary>Can I customise the art style?</summary>
+                        <p>Yes! Pick from dozens of curated art styles and Venice.ai will apply your choice across every page consistently.</p>
+                    </details>
                 </div>
-                <div id="book-cover" class="book-cover"></div>
-                <div id="book-pages" class="book-pages"></div>
             </section>
         </main>
 
-        <footer class="venice-credit">
-            <p>Powered by Venice.ai</p>
-        </footer>
+        <nav class="app-nav" aria-label="Primary navigation">
+            <button class="app-nav__item is-active" type="button" data-nav="home">
+                <span class="app-nav__icon" aria-hidden="true">🏠</span>
+                <span class="app-nav__label">Home</span>
+            </button>
+            <button class="app-nav__item" type="button" data-nav="create">
+                <span class="app-nav__icon" aria-hidden="true">📖</span>
+                <span class="app-nav__label">Create</span>
+            </button>
+            <button class="app-nav__item" type="button" data-nav="about">
+                <span class="app-nav__icon" aria-hidden="true">ℹ️</span>
+                <span class="app-nav__label">About</span>
+            </button>
+        </nav>
     </div>
 
     <script src="app.js"></script>
