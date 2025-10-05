@@ -19,11 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const bookPagesEl = document.getElementById('book-pages');
     const textModelSelect = document.getElementById('text-model');
     const imageModelSelect = document.getElementById('image-model');
+    const storyPromptInput = document.getElementById('story-prompt');
     const statusBanner = document.getElementById('status-banner');
     const statusBannerIcon = statusBanner ? statusBanner.querySelector('.status-banner__icon') : null;
     const statusBannerText = statusBanner ? statusBanner.querySelector('.status-banner__text') : null;
     const statusBannerClose = statusBanner ? statusBanner.querySelector('.status-banner__close') : null;
     const progressSteps = Array.from(document.querySelectorAll('.progress-tracker__step'));
+    const views = Array.from(document.querySelectorAll('.view'));
+    const navButtons = Array.from(document.querySelectorAll('.app-nav__item'));
+    const quickNavButtons = Array.from(document.querySelectorAll('[data-nav-target]'));
+    const ctaCreate = document.getElementById('cta-create');
 
     let currentBookData = null;
     let progressTimers = [];
@@ -39,6 +44,37 @@ document.addEventListener('DOMContentLoaded', () => {
     statusBannerClose?.addEventListener('click', () => {
         statusBanner?.classList.add('hidden');
     });
+
+    function showView(viewName) {
+        if (!viewName) return;
+        views.forEach(view => {
+            view.classList.toggle('is-active', view.dataset.view === viewName);
+        });
+        navButtons.forEach(button => {
+            button.classList.toggle('is-active', button.dataset.nav === viewName);
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (viewName === 'create') {
+            requestAnimationFrame(() => {
+                if (!storyPromptInput) return;
+                try {
+                    storyPromptInput.focus({ preventScroll: true });
+                } catch (error) {
+                    storyPromptInput.focus();
+                }
+            });
+        }
+    }
+
+    navButtons.forEach(button => {
+        button.addEventListener('click', () => showView(button.dataset.nav));
+    });
+
+    quickNavButtons.forEach(button => {
+        button.addEventListener('click', () => showView(button.dataset.navTarget));
+    });
+
+    ctaCreate?.addEventListener('click', () => showView('create'));
 
     function toggleDownloadButtons(show) {
         const method = show ? 'remove' : 'add';
@@ -331,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     generateBtn?.addEventListener('click', async () => {
-        const prompt = document.getElementById('story-prompt').value.trim();
+        const prompt = storyPromptInput?.value.trim() || '';
         const gradeLevel = document.getElementById('grade-level').value;
         const language = document.getElementById('language').value;
         const artStyle = document.getElementById('art-style').value;
