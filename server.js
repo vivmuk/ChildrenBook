@@ -3,6 +3,14 @@ const cors = require('cors');
 const path = require('path');
 const axios = require('axios');
 
+const VENICE_API_KEY = process.env.VENICE_API_KEY
+    || process.env.VENICE_TOKEN
+    || process.env.VITE_VENICE_API_KEY
+    || process.env.API_KEY
+    || '';
+
+const veniceEnabled = Boolean(VENICE_API_KEY);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -11,8 +19,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Venice.ai API Key
-const VENICE_API_KEY = 'ntmhtbP2fr_pOQsmuLPuN_nm6lm2INWKiNcvrdEfEC';
 const {
     SAFE_IMAGE_MODEL_IDS,
     isAllowedImageModel,
@@ -20,6 +26,138 @@ const {
     buildSafeImagePayload,
     getPromptCharacterLimit,
 } = require('./safety-config');
+
+const FALLBACK_TEXT_MODEL = {
+    id: 'mock-storyteller',
+    model_spec: {
+        name: 'Offline Storyteller',
+        constraints: {
+            promptCharacterLimit: 1000,
+        },
+    },
+};
+
+const FALLBACK_IMAGE_MODEL = {
+    id: SAFE_IMAGE_MODEL_IDS[0] || 'venice-sd35',
+    model_spec: {
+        name: 'Offline Illustrator',
+        constraints: {
+            promptCharacterLimit: 1000,
+        },
+    },
+};
+
+function escapeForSvg(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function createFallbackImage(title, body, width = 1024, height = 1024, paletteIndex = 0) {
+    const palettes = [
+        ['#FFDFC8', '#FF9AA2', '#FFB7B2'],
+        ['#D9F4FF', '#A0E7E5', '#B4F8C8'],
+        ['#FFF3B0', '#FFCE6D', '#F6A6B2'],
+        ['#E5E0FF', '#C4C1E0', '#A0C4FF'],
+    ];
+    const palette = palettes[paletteIndex % palettes.length];
+    const safeTitle = escapeForSvg(title).slice(0, 80);
+    const safeBody = escapeForSvg(body).slice(0, 160);
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${palette[0]}" />
+      <stop offset="70%" stop-color="${palette[1]}" />
+      <stop offset="100%" stop-color="${palette[2]}" />
+    </linearGradient>
+  </defs>
+  <rect width="${width}" height="${height}" fill="url(#bg)" rx="48" ry="48" />
+  <g fill="#3c2a4d" font-family="'Baloo 2', 'Comic Sans MS', sans-serif" text-anchor="middle">
+    <text x="${width / 2}" y="${height / 2 - 40}" font-size="${Math.max(32, width / 18)}" font-weight="700">${safeTitle}</text>
+    <text x="${width / 2}" y="${height / 2 + 40}" font-size="${Math.max(24, width / 26)}" opacity="0.75">${safeBody}</text>
+  </g>
+  <circle cx="${width * 0.2}" cy="${height * 0.8}" r="${Math.max(width, height) * 0.06}" fill="#ffffff55" />
+  <circle cx="${width * 0.8}" cy="${height * 0.2}" r="${Math.max(width, height) * 0.05}" fill="#ffffff33" />
+  <path d="M${width * 0.2} ${height * 0.25} Q${width * 0.3} ${height * 0.05} ${width * 0.5} ${height * 0.18} T${width * 0.8} ${height * 0.25}" stroke="#ffffff55" stroke-width="14" fill="none" stroke-linecap="round" />
+</svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+function buildFallbackStory({ prompt = '', language = 'English', gradeLevel = '3', artStyle = 'Classic storybook' }) {
+    const cleanedPrompt = prompt || 'a brave young explorer discovering a hidden world';
+    const gradeTone = {
+        '1': 'short, playful sentences with gentle rhymes',
+        '2': 'simple sentences filled with curiosity and friendship',
+        '3': 'warm storytelling with a dash of adventure and humour',
+        '4': 'imaginative scenes with lively dialogue and problem solving',
+        '5': 'rich descriptions, thoughtful emotions, and inspiring lessons',
+    };
+
+    const languageOpeners = {
+        English: 'Once upon a time',
+        Spanish: 'Érase una vez',
+        French: 'Il était une fois',
+        German: 'Es war einmal',
+        Hindi: 'किसी समय की बात है',
+        Gujarati: 'એક વખતની વાત છે',
+    };
+
+    const languageClosers = {
+        English: 'Together they discovered that kindness makes every adventure brighter.',
+        Spanish: 'Juntos descubrieron que la bondad hace cada aventura más brillante.',
+        French: 'Ensemble, ils découvrirent que la gentillesse rend chaque aventure plus lumineuse.',
+        German: 'Gemeinsam entdeckten sie, dass Freundlichkeit jedes Abenteuer heller macht.',
+        Hindi: 'साथ मिलकर उन्होंने सीखा कि दया हर रोमांच को उज्ज्वल बनाती है।',
+        Gujarati: 'સાથે મળીને તેમણે શીખ્યું કે દયા દરેક સાહસને ઝગમગતું બનાવે છે.',
+    };
+
+    const opener = languageOpeners[language] || languageOpeners.English;
+    const closer = languageClosers[language] || languageClosers.English;
+    const tone = gradeTone[String(gradeLevel)] || gradeTone['3'];
+
+    const title = cleanedPrompt.length > 3
+        ? `${cleanedPrompt.replace(/^[a-z]/, c => c.toUpperCase()).replace(/\.$/, '')}`
+        : 'A Magical Adventure';
+
+    const summary = `${opener}, a story about ${cleanedPrompt}. Written with ${tone}.`;
+    const pages = Array.from({ length: 8 }).map((_, index) => {
+        const beat = [
+            'meets a surprising friend who understands their dreams',
+            'follows sparkling clues that flutter in the air',
+            'faces a puzzle that needs courage and creativity',
+            'listens to the whispers of the wind for gentle guidance',
+            'shares a laugh that echoes like chimes through the trees',
+            'helps someone in need and feels their heart glow',
+            'sees the path ahead sparkle with possibilities',
+            closer,
+        ][index];
+
+        return `${opener}! Our hero inspired by ${cleanedPrompt} ${beat}`;
+    });
+
+    const coverImageUrl = createFallbackImage(title, artStyle, 1792, 1024, 0);
+    const pageImageUrls = pages.map((page, index) =>
+        createFallbackImage(`Page ${index + 1}`, page, 1024, 1024, index + 1)
+    );
+    const endPageImageUrl = createFallbackImage('The End', closer, 1024, 1024, 5);
+
+    return {
+        title,
+        story: pages,
+        coverImageUrl,
+        pageImageUrls,
+        endPageImageUrl,
+        metadata: {
+            fallback: true,
+            language,
+        },
+        summary,
+    };
+}
 
 // Helper function for image generation
 async function generateImageForText(
@@ -31,6 +169,9 @@ async function generateImageForText(
     title = '',
     size = "1024x1024"
 ) {
+    if (!veniceEnabled) {
+        throw new Error('Venice.ai API is not configured.');
+    }
     const safeImageModelId = enforceSafeImageModel(imageModel);
     const rawPromptLimit = getPromptCharacterLimit(safeImageModelId);
     const promptLimitBuffer = 50;
@@ -81,11 +222,14 @@ async function generateImageForText(
 // Test route
 app.get('/api/test', async (req, res) => {
     try {
-        if (req.query.simple === 'true') {
+        if (req.query.simple === 'true' || !veniceEnabled) {
             return res.json({
-                message: 'Render server is working!',
+                message: veniceEnabled
+                    ? 'Render server is working!'
+                    : 'Offline fallback mode active. Venice.ai API key not configured.',
                 timestamp: new Date().toISOString(),
-                nodeVersion: process.version
+                nodeVersion: process.version,
+                fallback: !veniceEnabled,
             });
         }
 
@@ -109,6 +253,14 @@ app.get('/api/test', async (req, res) => {
 // Get models
 app.get('/api/models', async (req, res) => {
     try {
+        if (!veniceEnabled) {
+            return res.json({
+                textModels: [FALLBACK_TEXT_MODEL],
+                imageModels: [FALLBACK_IMAGE_MODEL],
+                fallback: true,
+            });
+        }
+
         const textModelPromise = axios.get('https://api.venice.ai/api/v1/models', {
             headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` },
             params: { type: 'text' }
@@ -130,7 +282,15 @@ app.get('/api/models', async (req, res) => {
         res.json({ textModels, imageModels });
     } catch (error) {
         console.error("Failed to fetch models:", error.message);
-        res.status(500).json({ error: "Could not fetch models from Venice.ai" });
+        if (!veniceEnabled) {
+            res.json({
+                textModels: [FALLBACK_TEXT_MODEL],
+                imageModels: [FALLBACK_IMAGE_MODEL],
+                fallback: true,
+            });
+        } else {
+            res.status(500).json({ error: "Could not fetch models from Venice.ai" });
+        }
     }
 });
 
@@ -138,6 +298,7 @@ app.get('/api/models', async (req, res) => {
 app.post('/api/story', async (req, res) => {
     try {
         const { prompt, gradeLevel, language, artStyle, model, imageModel } = req.body;
+        const requestContext = { prompt, gradeLevel, language, artStyle };
 
         if (!prompt) {
             return res.status(400).json({ error: 'A story prompt is required.' });
@@ -145,6 +306,11 @@ app.post('/api/story', async (req, res) => {
 
         if (!isAllowedImageModel(imageModel)) {
             return res.status(400).json({ error: 'Please select a permitted safe Venice.ai image model.' });
+        }
+
+        if (!veniceEnabled) {
+            console.warn('Venice.ai API key missing - using offline fallback story.');
+            return res.json(buildFallbackStory(requestContext));
         }
 
         console.log(`Starting complete book generation for: "${prompt}"`);
@@ -249,7 +415,18 @@ You are a world-class children's book author. Your task is to write a unique, ca
 
     } catch (error) {
         console.error('Error during book generation:', error.response ? error.response.data : error.message);
-        res.status(500).json({ error: 'Failed to generate the book.', details: error.message });
+        if (!veniceEnabled) {
+            return res.status(500).json({ error: 'Failed to generate the book.', details: error.message });
+        }
+
+        try {
+            console.warn('Falling back to offline story after Venice.ai error.');
+            const fallbackStory = buildFallbackStory(req.body || {});
+            return res.json(fallbackStory);
+        } catch (fallbackError) {
+            console.error('Fallback story generation failed:', fallbackError.message);
+            res.status(500).json({ error: 'Failed to generate the book.', details: error.message });
+        }
     }
 });
 

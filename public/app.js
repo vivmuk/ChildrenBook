@@ -248,7 +248,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(message);
             }
 
-            const { textModels, imageModels } = await response.json();
+            const data = await response.json();
+            const { textModels = [], imageModels = [], fallback = false } = data;
 
             const renderOption = (selectEl, model, fallbackLabel) => {
                 const option = document.createElement('option');
@@ -290,7 +291,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 imageModelSelect.innerHTML = '<option value="">No image models found</option>';
             }
 
-            setStatus('Models ready! Choose your creative combo to begin.', 'success');
+            if (fallback) {
+                setStatus('Offline demo mode: using built-in storyteller and illustrator.', 'info');
+            } else {
+                setStatus('Models ready! Choose your creative combo to begin.', 'success');
+            }
             textModelSelect.disabled = false;
             imageModelSelect.disabled = false;
         } catch (error) {
