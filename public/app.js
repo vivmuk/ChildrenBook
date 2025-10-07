@@ -354,14 +354,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchImageAsBase64(url) {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
+        // If it's already a data URL (base64), return it directly
+        if (url.startsWith('data:')) {
+            return url;
+        }
+        
+        // Otherwise, fetch and convert to base64
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.error('Failed to fetch image:', error);
+            // Return a placeholder or rethrow
+            throw error;
+        }
     }
 
     async function createPdf(data) {

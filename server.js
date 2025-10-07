@@ -310,10 +310,17 @@ Output ONLY the prompt, nothing else.`;
                 imageUrl = imageResponse.data.image_url;
                 console.log(`🔗 Found image at: data.image_url`);
             }
-            // Try images array
+            // Try images array (Venice.ai returns raw base64 here!)
             else if (imageResponse.data.images && Array.isArray(imageResponse.data.images) && imageResponse.data.images[0]) {
-                imageUrl = imageResponse.data.images[0];
-                console.log(`🔗 Found image at: data.images[0]`);
+                const rawData = imageResponse.data.images[0];
+                // Check if it's raw base64 (starts with RIFF for WEBP or other format signatures)
+                if (typeof rawData === 'string' && !rawData.startsWith('http') && !rawData.startsWith('data:')) {
+                    imageUrl = `data:image/webp;base64,${rawData}`;
+                    console.log(`🔗 Found RAW base64 at: data.images[0] - converted to data URL`);
+                } else {
+                    imageUrl = rawData;
+                    console.log(`🔗 Found image at: data.images[0]`);
+                }
             }
         }
         
@@ -445,37 +452,52 @@ app.post('/api/story', async (req, res) => {
         console.log(`Starting complete book generation for: "${prompt}"`);
 
         const storySystemPrompt = `
-You are a children's book author creating a COHESIVE 8-page story that flows naturally.
+You are an award-winning children's book author in the style of Mo Willems, Oliver Jeffers, and Julia Donaldson. Create a MAGICAL, ENGAGING 8-page story that children will want to read again and again.
 
-**Story Structure:**
-- Page 1: Introduce main character in their normal world
-- Page 2: Adventure begins (something happens)
-- Page 3-4: Character explores/faces challenges
-- Page 5-6: Climax - biggest challenge or discovery
-- Page 7: Resolution and solution
-- Page 8: Happy ending with lesson learned
+**Story Crafting Excellence:**
+- Make it EMOTIONAL: Joy, wonder, friendship, discovery, courage
+- Add SENSORY details: Colors, sounds, smells, feelings
+- Include DIALOGUE when appropriate to bring characters to life
+- Create MEMORABLE moments: Surprises, humor, touching scenes
+- Build ANTICIPATION: Each page should make you want to turn to the next
+
+**Perfect Story Structure:**
+- Page 1: Establish character's world with vivid detail
+- Page 2: Exciting inciting incident (something wonderful/surprising happens!)
+- Page 3: Character takes action, exploration begins
+- Page 4: Discovery or new challenge (raise the stakes)
+- Page 5: Tension builds, character faces their biggest challenge
+- Page 6: Climactic moment (the peak of the adventure!)
+- Page 7: Resolution unfolds beautifully
+- Page 8: Heartwarming ending with gentle life lesson
 
 **CRITICAL RULES:**
-1. Use the SAME character name throughout (pick ONE name)
-2. Each page continues from the previous - NOT a new start
-3. DO NOT repeat "Once upon a time" on every page
-4. Use transition words: "Then", "Next", "Suddenly", "After that", etc.
-5. Keep it ONE continuous story flowing across 8 pages
+1. ONE character name used consistently throughout
+2. FLOWING narrative - each page continues naturally from the last
+3. NEVER repeat "Once upon a time" or similar phrases
+4. USE transition words: "Then", "Next", "Suddenly", "Meanwhile", "After that"
+5. NO math formulas, NO symbols like $$, $\\frac, NO LaTeX code
+6. NO "Page 1:", "Page 2:" labels in the text itself
+7. Write in SIMPLE, BEAUTIFUL prose
 
 **Grade Level ${gradeLevel}:**
-- Grades 1-2: Short simple sentences, repetition
-- Grades 3-4: Descriptive language, some dialogue
-- Grades 5+: Rich vocabulary, complex sentences
+- Grades 1-2: Simple words, short sentences (5-8 words), repetition, rhythm
+- Grades 3-4: Richer vocabulary, varied sentence length, descriptive language, some dialogue
+- Grades 5+: Complex sentences, sophisticated vocabulary, metaphors, deeper themes
 
 **Language:** ${language}
 
 **Output:** JSON only:
 {
-  "title": "Story Title",
-  "story": ["Page 1...", "Page 2...", ... 8 pages total]
+  "title": "An Engaging, Memorable Title",
+  "story": [
+    "Page 1 text - vivid opening...",
+    "Page 2 text - exciting turn...",
+    ... exactly 8 pages
+  ]
 }
 
-Each page should be 2-4 sentences that CONTINUE the story from the previous page.
+Write like you're creating a TREASURE that families will read together at bedtime. Make every word count. Create magic.
         `;
         
         // 1. Generate Story
