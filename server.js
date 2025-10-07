@@ -161,7 +161,7 @@ function buildFallbackStory({ prompt = '', language = 'English', gradeLevel = '3
     };
 }
 
-// Helper function for image generation
+// Helper function for image generation using NEW Venice.ai API
 async function generateImageForText(
     text,
     artStyle,
@@ -169,7 +169,8 @@ async function generateImageForText(
     characterDescription,
     isCover = false,
     title = '',
-    size = "1024x1024"
+    width = 1024,
+    height = 1024
 ) {
     if (!veniceEnabled) {
         throw new Error('Venice.ai API is not configured.');
@@ -181,58 +182,72 @@ async function generateImageForText(
     
     console.log(`📏 Model "${safeImageModelId}" has prompt limit: ${rawPromptLimit} chars (using ${promptLimit} after buffer)`);
     
-    let imagePromptSystem;
+    // Create detailed, cohesive prompts
+    let enhancedPrompt;
     
     if (isCover) {
-        imagePromptSystem = `You are an expert art director creating a book cover illustration. Create a rich, detailed, and imaginative image prompt for an AI model. The prompt must generate a vibrant, friendly, and colorful book cover in a playful cartoon style. CRITICAL: The image MUST prominently display the title text "${title}" as readable text integrated into the cover design - this could be on a sign, banner, building, or stylized lettering that fits the scene. The title text should be large, clear, and easily readable. The requested art style is a suggestion, but the final image MUST be a cartoon. The main character MUST match this description: "${characterDescription}". Art Style: ${artStyle}.`;
+        enhancedPrompt = `Beautiful children's book cover in ${artStyle} style. ${title}. ${characterDescription}. ${text}. Vibrant, enchanting, professional book cover design with the main character prominently featured. Warm lighting, inviting atmosphere.`;
     } else {
-        imagePromptSystem = `You are an expert art director creating illustrations for a children's book. Create a rich, detailed, and imaginative image prompt for an AI model. The prompt must generate a vibrant, friendly, and colorful image in a playful cartoon style. It should capture the essence of the following text. Focus on scene, characters, emotion, and lighting. The final output should be a single, descriptive paragraph. The requested art style is a suggestion, but the final image MUST be a cartoon. The main character MUST match this description: "${characterDescription}". Art Style: ${artStyle}.`;
+        enhancedPrompt = `Children's book illustration in ${artStyle} style. ${characterDescription} is the main character. Scene: ${text}. Consistent character design, expressive emotions, detailed background, warm lighting, engaging composition, perfect for children ages 5-10.`;
     }
-
-    if (artStyle.toLowerCase().includes('ghibli')) {
-        if (isCover) {
-            imagePromptSystem = `You are an expert art director specializing in the Studio Ghibli aesthetic for a children's book cover. Create a rich, detailed, and imaginative image prompt that captures a playful cartoon style inspired by Ghibli. CRITICAL: The image MUST prominently display the title text "${title}" as readable text integrated into the cover design - this could be on a wooden sign, magical banner, or stylized lettering that fits the Ghibli aesthetic. The title text should be large, clear, and easily readable. Emphasize lush, painterly backgrounds, whimsical scenery, and the interplay of light and nature. The final image MUST be a cartoon that evokes the feeling of a Ghibli film. Art Style: ${artStyle}. The main character MUST match this description: "${characterDescription}".`;
-        } else {
-            imagePromptSystem = `You are an expert art director specializing in the Studio Ghibli aesthetic for a children's book. Create a rich, detailed, and imaginative image prompt that captures the provided text in a playful cartoon style inspired by Ghibli. Emphasize lush, painterly backgrounds, whimsical scenery, and the interplay of light and nature. The final image MUST be a cartoon that evokes the feeling of a Ghibli film. The final output must be a single, descriptive paragraph. Art Style: ${artStyle}. The main character MUST match this description: "${characterDescription}".`;
-        }
-    }
-
-    const promptGenResponse = await axios.post('https://api.venice.ai/api/v1/chat/completions', {
-        model: 'mistral-31-24b',
-        messages: [{ role: 'system', content: imagePromptSystem }, { role: 'user', content: `Text: "${text}"` }]
-    }, { headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` } });
-
-    let imagePrompt = promptGenResponse.data.choices[0].message.content;
-    console.log(`📝 Generated image prompt: ${imagePrompt.length} characters`);
     
-    if (imagePrompt.length > promptLimit) {
-        console.warn(`⚠️  TRUNCATING: Prompt is ${imagePrompt.length} chars, exceeds ${safeImageModelId}'s limit of ${promptLimit} chars`);
-        imagePrompt = imagePrompt.substring(0, promptLimit);
-        console.log(`✂️  Truncated to ${imagePrompt.length} characters`);
+    // Ensure prompt is within limits
+    if (enhancedPrompt.length > promptLimit) {
+        console.warn(`⚠️  TRUNCATING: Prompt is ${enhancedPrompt.length} chars, exceeds ${safeImageModelId}'s limit of ${promptLimit} chars`);
+        enhancedPrompt = enhancedPrompt.substring(0, promptLimit);
+        console.log(`✂️  Truncated to ${enhancedPrompt.length} characters`);
     } else {
-        console.log(`✅ Prompt length OK (${imagePrompt.length}/${promptLimit} chars)`);
+        console.log(`✅ Prompt length OK (${enhancedPrompt.length}/${promptLimit} chars)`);
     }
 
-    const imageRequestPayload = buildSafeImagePayload({
-        prompt: imagePrompt,
-        n: 1,
-        size,
-        response_format: 'url',
-    }, safeImageModelId);
+    // Build payload for NEW Venice.ai image API
+    const imageRequestPayload = {
+        model: safeImageModelId,
+        prompt: enhancedPrompt,
+        negative_prompt: "ugly, deformed, distorted, scary, dark, violent, nsfw, adult content, inappropriate, blurry, low quality",
+        width: width,
+        height: height,
+        variants: 1,
+        steps: 25,
+        cfg_scale: 7.5,
+        format: "webp",
+        safe_mode: true,
+        hide_watermark: false,
+        embed_exif_metadata: false,
+        return_binary: false
+    };
 
-    console.log(`🚀 Sending to Venice.ai API:`, { 
+    console.log(`🚀 Sending to NEW Venice.ai Image API:`, { 
         model: imageRequestPayload.model, 
-        size: imageRequestPayload.size,
+        dimensions: `${width}x${height}`,
         safe_mode: imageRequestPayload.safe_mode,
         hide_watermark: imageRequestPayload.hide_watermark,
-        prompt_length: imageRequestPayload.prompt.length 
+        prompt_length: imageRequestPayload.prompt.length,
+        steps: imageRequestPayload.steps
     });
 
-    const imageResponse = await axios.post('https://api.venice.ai/api/v1/images/generations', imageRequestPayload, {
-        headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` },
-    });
+    try {
+        const imageResponse = await axios.post('https://api.venice.ai/api/v1/image/generate', imageRequestPayload, {
+            headers: { 
+                'Authorization': `Bearer ${VENICE_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+        });
 
-    return imageResponse.data.data[0].url;
+        console.log(`✅ Image generated successfully`);
+        
+        // The new API returns image URL directly in the response
+        if (imageResponse.data && imageResponse.data.url) {
+            return imageResponse.data.url;
+        } else if (imageResponse.data && imageResponse.data.data && imageResponse.data.data[0]) {
+            return imageResponse.data.data[0].url;
+        } else {
+            throw new Error('Unexpected image API response format');
+        }
+    } catch (error) {
+        console.error('Image generation error:', error.response?.data || error.message);
+        throw error;
+    }
 }
 
 // Routes
@@ -334,17 +349,40 @@ app.post('/api/story', async (req, res) => {
         console.log(`Starting complete book generation for: "${prompt}"`);
 
         const storySystemPrompt = `
-You are a world-class children's book author. Your task is to write a unique, captivating, and emotionally resonant 8-page story based on a user's prompt. You must emulate the masters of children's literature, adapting your style to the requested grade level.
+You are a world-class children's book author creating a COHESIVE 8-page story. Your story must have a clear beginning, middle, and end that flows naturally from page to page.
+
+**Story Structure (MANDATORY):**
+- Page 1: Introduce the main character and their normal world
+- Page 2: Something interesting happens that starts the adventure
+- Page 3-4: The character faces challenges or explores something new
+- Page 5-6: The challenge builds to a climax or turning point
+- Page 7: Resolution begins - the character finds a solution
+- Page 8: Happy ending - what the character learned or achieved
+
 **Grade Level Adaptations:**
-- **1st-2nd Grade:** Write in the style of authors like Dr. Seuss or Eric Carle. Use simple, rhyming language, short sentences, and clear, foundational themes like friendship or discovery.
-- **3rd-4th Grade:** Write in the style of authors like Roald Dahl or Beverly Cleary. Use more complex sentences, richer vocabulary, introduce humor, and explore themes of overcoming challenges or understanding others.
-- **5th Grade & Up:** Write in the style of authors like C.S. Lewis or J.K. Rowling. Use sophisticated language, complex sentence structures, metaphors, and allegories. Tackle deeper themes like courage, morality, and the complexities of life.
-**CRITICAL INSTRUCTIONS:**
-1.  Create a compelling title for the story.
-2.  The story MUST be exactly 8 pages long. Do not provide less or more.
-3.  The story must be written in ${language}.
-4.  You MUST return a valid JSON object with two keys: "title" and "story".
-5.  ABSOLUTELY DO NOT use placeholder text like "-1" or fail to complete a page. Each of the 8 strings in the 'story' array must be a complete paragraph for that page.
+- **1st-2nd Grade:** Simple words, short sentences (5-8 words), repetition, clear emotions
+- **3rd-4th Grade:** Richer vocabulary, longer sentences (8-15 words), dialogue, descriptive details
+- **5th Grade & Up:** Complex sentences, advanced vocabulary, deeper themes, character growth
+
+**Character Consistency:**
+- Keep the SAME main character throughout all 8 pages
+- Use the SAME character name consistently
+- Describe them the same way each time they appear
+- Give them a clear personality and goal
+
+**Language:** ${language}
+
+**Output Format:** Return ONLY a valid JSON object with:
+{
+  "title": "Story Title Here",
+  "story": [
+    "Page 1 text - full paragraph introducing character...",
+    "Page 2 text - full paragraph continuing the story...",
+    ... (exactly 8 pages total)
+  ]
+}
+
+**CRITICAL:** Each page must connect to the previous page. Use transition words. Make it feel like ONE cohesive story, not 8 separate scenes.
         `;
         
         // 1. Generate Story
@@ -409,27 +447,85 @@ You are a world-class children's book author. Your task is to write a unique, ca
 
         // 2. Generate a Consistent Character Description
         console.log("Generating consistent character description...");
-        const characterDescSystemPrompt = `Based on the following children's story, create a single, detailed character description for the main protagonist. Describe their appearance, gender, age, and clothing in a consistent manner. This description will be used to generate all illustrations. Output ONLY the description as a single paragraph. Story: ${JSON.stringify(storyData)}`;
+        const characterDescSystemPrompt = `You are a character designer for children's books. Based on this story, create a DETAILED, CONSISTENT character description for the main protagonist.
+
+Story Title: ${title}
+Story: ${JSON.stringify(story)}
+
+Create a character description that includes:
+1. Specific physical appearance (hair color/style, eye color, skin tone, height/build)
+2. Age (approximate)
+3. Clothing/outfit (specific colors and style)
+4. Distinctive features (freckles, glasses, accessories, etc.)
+5. Personality traits that show in their appearance
+
+Make it SPECIFIC and DETAILED so an artist can draw the exact same character for every page. Use concrete details, not vague descriptions.
+
+Output ONLY the character description as a single detailed paragraph.`;
+        
         const characterResponse = await axios.post('https://api.venice.ai/api/v1/chat/completions', {
             model: 'mistral-31-24b',
-            messages: [{ role: 'system', content: characterDescSystemPrompt }, { role: 'user', content: 'Generate the character description.' }]
+            messages: [{ role: 'system', content: characterDescSystemPrompt }, { role: 'user', content: 'Generate the detailed character description now.' }]
         }, { headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` } });
         const characterDescription = characterResponse.data.choices[0].message.content;
-        console.log("Character Description:", characterDescription);
+        console.log("📋 Character Description:", characterDescription);
 
         // 3. Generate all images with the character description
         const safeImageModel = enforceSafeImageModel(imageModel);
         console.log(`✨ User selected image model: ${imageModel}`);
         console.log(`✅ Using validated safe image model: ${safeImageModel}`);
         console.log(`🎨 Generating all illustrations with ${safeImageModel} in "${artStyle}" style...`);
-        const coverPromise = generateImageForText(`A beautiful book cover for a story titled "${title}"`, artStyle, safeImageModel, characterDescription, true, title, "1792x1024");
-        const pageImagePromises = story.map(pageText => generateImageForText(pageText, artStyle, safeImageModel, characterDescription, false, '', "1024x1024"));
-        const endPagePromise = generateImageForText(`A beautiful "The End" illustration that matches the theme and style of the story "${title}". Show a magical, whimsical "The End" sign or text integrated naturally into a scene that reflects the story's mood and setting.`, artStyle, safeImageModel, characterDescription, false, '', "1024x1024");
+        console.log(`📚 Generating COVER, 8 PAGES, and END PAGE = 10 total images`);
+        
+        // Generate cover (wider format)
+        console.log(`\n🖼️  Generating COVER IMAGE...`);
+        const coverPromise = generateImageForText(
+            `Book cover for "${title}". ${story[0]}`, 
+            artStyle, 
+            safeImageModel, 
+            characterDescription, 
+            true, 
+            title, 
+            1792, 
+            1024
+        );
+        
+        // Generate page images (square format)
+        const pageImagePromises = story.map((pageText, index) => {
+            console.log(`\n📄 Generating PAGE ${index + 1} IMAGE...`);
+            return generateImageForText(
+                pageText, 
+                artStyle, 
+                safeImageModel, 
+                characterDescription, 
+                false, 
+                '', 
+                1024, 
+                1024
+            );
+        });
+        
+        // Generate "The End" page
+        console.log(`\n✨ Generating THE END PAGE IMAGE...`);
+        const endPagePromise = generateImageForText(
+            `"The End" page for the story "${title}". ${characterDescription} celebrating the happy ending. ${story[story.length - 1]}`, 
+            artStyle, 
+            safeImageModel, 
+            characterDescription, 
+            false, 
+            '', 
+            1024, 
+            1024
+        );
+        
         const allImages = await Promise.all([coverPromise, ...pageImagePromises, endPagePromise]);
         const coverImageUrl = allImages[0];
         const pageImageUrls = allImages.slice(1, -1);
         const endPageImageUrl = allImages[allImages.length - 1];
-        console.log("All images generated successfully.");
+        console.log("\n🎉 All images generated successfully!");
+        console.log(`   - Cover: ✅`);
+        console.log(`   - Pages 1-8: ✅`);
+        console.log(`   - The End: ✅`);
 
         res.json({ title, story, coverImageUrl, pageImageUrls, endPageImageUrl });
 
