@@ -284,14 +284,33 @@ Output ONLY the prompt, nothing else.`;
 
         console.log(`✅ Image generated successfully`);
         
-        // The new API returns image URL directly in the response
-        if (imageResponse.data && imageResponse.data.url) {
-            return imageResponse.data.url;
-        } else if (imageResponse.data && imageResponse.data.data && imageResponse.data.data[0]) {
-            return imageResponse.data.data[0].url;
-        } else {
-            throw new Error('Unexpected image API response format');
+        // The new API returns image URL in different possible formats
+        if (imageResponse.data) {
+            // Try direct url field
+            if (imageResponse.data.url) {
+                return imageResponse.data.url;
+            }
+            // Try data array format
+            if (imageResponse.data.data && Array.isArray(imageResponse.data.data) && imageResponse.data.data[0]) {
+                if (imageResponse.data.data[0].url) {
+                    return imageResponse.data.data[0].url;
+                }
+                if (imageResponse.data.data[0].b64_json) {
+                    return `data:image/webp;base64,${imageResponse.data.data[0].b64_json}`;
+                }
+            }
+            // Try direct image_url field
+            if (imageResponse.data.image_url) {
+                return imageResponse.data.image_url;
+            }
+            // Try images array
+            if (imageResponse.data.images && Array.isArray(imageResponse.data.images) && imageResponse.data.images[0]) {
+                return imageResponse.data.images[0];
+            }
         }
+        
+        console.error('Unexpected API response structure:', JSON.stringify(imageResponse.data, null, 2));
+        throw new Error('Could not extract image URL from API response');
     } catch (error) {
         console.error('Image generation error:', error.response?.data || error.message);
         throw error;
@@ -397,40 +416,37 @@ app.post('/api/story', async (req, res) => {
         console.log(`Starting complete book generation for: "${prompt}"`);
 
         const storySystemPrompt = `
-You are a world-class children's book author creating a COHESIVE 8-page story. Your story must have a clear beginning, middle, and end that flows naturally from page to page.
+You are a children's book author creating a COHESIVE 8-page story that flows naturally.
 
-**Story Structure (MANDATORY):**
-- Page 1: Introduce the main character and their normal world
-- Page 2: Something interesting happens that starts the adventure
-- Page 3-4: The character faces challenges or explores something new
-- Page 5-6: The challenge builds to a climax or turning point
-- Page 7: Resolution begins - the character finds a solution
-- Page 8: Happy ending - what the character learned or achieved
+**Story Structure:**
+- Page 1: Introduce main character in their normal world
+- Page 2: Adventure begins (something happens)
+- Page 3-4: Character explores/faces challenges
+- Page 5-6: Climax - biggest challenge or discovery
+- Page 7: Resolution and solution
+- Page 8: Happy ending with lesson learned
 
-**Grade Level Adaptations:**
-- **1st-2nd Grade:** Simple words, short sentences (5-8 words), repetition, clear emotions
-- **3rd-4th Grade:** Richer vocabulary, longer sentences (8-15 words), dialogue, descriptive details
-- **5th Grade & Up:** Complex sentences, advanced vocabulary, deeper themes, character growth
+**CRITICAL RULES:**
+1. Use the SAME character name throughout (pick ONE name)
+2. Each page continues from the previous - NOT a new start
+3. DO NOT repeat "Once upon a time" on every page
+4. Use transition words: "Then", "Next", "Suddenly", "After that", etc.
+5. Keep it ONE continuous story flowing across 8 pages
 
-**Character Consistency:**
-- Keep the SAME main character throughout all 8 pages
-- Use the SAME character name consistently
-- Describe them the same way each time they appear
-- Give them a clear personality and goal
+**Grade Level ${gradeLevel}:**
+- Grades 1-2: Short simple sentences, repetition
+- Grades 3-4: Descriptive language, some dialogue
+- Grades 5+: Rich vocabulary, complex sentences
 
 **Language:** ${language}
 
-**Output Format:** Return ONLY a valid JSON object with:
+**Output:** JSON only:
 {
-  "title": "Story Title Here",
-  "story": [
-    "Page 1 text - full paragraph introducing character...",
-    "Page 2 text - full paragraph continuing the story...",
-    ... (exactly 8 pages total)
-  ]
+  "title": "Story Title",
+  "story": ["Page 1...", "Page 2...", ... 8 pages total]
 }
 
-**CRITICAL:** Each page must connect to the previous page. Use transition words. Make it feel like ONE cohesive story, not 8 separate scenes.
+Each page should be 2-4 sentences that CONTINUE the story from the previous page.
         `;
         
         // 1. Generate Story
@@ -495,27 +511,27 @@ You are a world-class children's book author creating a COHESIVE 8-page story. Y
 
         // 2. Generate a Consistent Character Description
         console.log("Generating consistent character description...");
-        const characterDescSystemPrompt = `You are a character designer for children's books. Based on this story, create a DETAILED, CONSISTENT character description for the main protagonist.
+        const characterDescSystemPrompt = `Based on this story, create a SHORT, VISUAL character description (max 100 words).
 
 Story Title: ${title}
-Story: ${JSON.stringify(story)}
+First page: ${story[0]}
 
-Create a character description that includes:
-1. Specific physical appearance (hair color/style, eye color, skin tone, height/build)
-2. Age (approximate)
-3. Clothing/outfit (specific colors and style)
-4. Distinctive features (freckles, glasses, accessories, etc.)
-5. Personality traits that show in their appearance
+Include ONLY visual details:
+- Age and gender
+- Hair (color, style)
+- Eyes (color)
+- Clothing (2-3 items with colors)
+- One distinctive feature
 
-Make it SPECIFIC and DETAILED so an artist can draw the exact same character for every page. Use concrete details, not vague descriptions.
-
-Output ONLY the character description as a single detailed paragraph.`;
+Keep it simple and visual. NO personality traits, NO backstory, NO math formulas.
+Output ONLY the description, nothing else.`;
         
         const characterResponse = await axios.post('https://api.venice.ai/api/v1/chat/completions', {
             model: 'mistral-31-24b',
-            messages: [{ role: 'system', content: characterDescSystemPrompt }, { role: 'user', content: 'Generate the detailed character description now.' }]
+            messages: [{ role: 'system', content: characterDescSystemPrompt }, { role: 'user', content: 'Generate SHORT character description now.' }],
+            max_tokens: 150
         }, { headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` } });
-        const characterDescription = characterResponse.data.choices[0].message.content;
+        const characterDescription = characterResponse.data.choices[0].message.content.trim();
         console.log("📋 Character Description:", characterDescription);
 
         // 3. Generate all images with the character description
@@ -525,7 +541,7 @@ Output ONLY the character description as a single detailed paragraph.`;
         console.log(`🎨 Generating all illustrations with ${safeImageModel} in "${artStyle}" style...`);
         console.log(`📚 Generating COVER, 8 PAGES, and END PAGE = 10 total images`);
         
-        // Generate cover (wider format)
+        // Generate cover (landscape format - max 1280 width)
         console.log(`\n🖼️  Generating COVER IMAGE...`);
         const coverPromise = generateImageForText(
             `Book cover for "${title}". ${story[0]}`, 
@@ -534,7 +550,7 @@ Output ONLY the character description as a single detailed paragraph.`;
             characterDescription, 
             true, 
             title, 
-            1792, 
+            1280, 
             1024
         );
         

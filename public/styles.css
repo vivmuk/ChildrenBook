@@ -953,7 +953,8 @@ select {
 }
 
 .page {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 1.5rem;
     padding: 1.75rem;
     border-radius: var(--radius-xl);
@@ -962,6 +963,7 @@ select {
     border: 1px solid var(--glass-border);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--shadow-md);
+    align-items: center;
 }
 
 .page:hover {
@@ -1002,6 +1004,12 @@ select {
     color: var(--text-secondary);
     line-height: 1.8;
     font-size: 1rem;
+    text-align: left;
+    width: 100%;
+}
+
+.page-content {
+    width: 100%;
 }
 
 /* Modern Navigation */
