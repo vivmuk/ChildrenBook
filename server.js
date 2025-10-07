@@ -182,27 +182,64 @@ async function generateImageForText(
     
     console.log(`📏 Model "${safeImageModelId}" has prompt limit: ${rawPromptLimit} chars (using ${promptLimit} after buffer)`);
     
-    // Extract key character features (keep it SHORT)
-    const characterWords = characterDescription.split(' ');
-    const shortCharDesc = characterWords.slice(0, 20).join(' '); // Max 20 words
-    
-    // Extract key scene elements (keep it SHORT)
-    const sceneWords = text.split(' ');
-    const shortScene = sceneWords.slice(0, 25).join(' '); // Max 25 words
-    
-    // Create CONCISE prompts that stay under 1400 chars
-    let enhancedPrompt;
+    // Use LLM to intelligently distill the prompt for maximum quality under 1000 chars
+    const targetLength = 900; // Target 900 chars to leave buffer room
+    let promptGenSystemMessage;
     
     if (isCover) {
-        // Cover prompt: ~300-400 chars max
-        enhancedPrompt = `Children's book cover, ${artStyle} style. Title: ${title}. Main character: ${shortCharDesc}. Vibrant, enchanting, professional illustration, warm colors.`;
+        promptGenSystemMessage = `You are an expert at creating concise, high-quality image generation prompts for children's book covers.
+
+Given:
+- Title: ${title}
+- Art Style: ${artStyle}
+- Character Description: ${characterDescription}
+- Story Opening: ${text}
+
+Create a DETAILED but CONCISE image prompt (max ${targetLength} characters) that includes:
+1. The art style
+2. Key character visual details (appearance, clothing, expression)
+3. The scene/setting
+4. Mood and atmosphere
+5. Composition notes
+
+Focus on VISUAL elements. Be specific about colors, lighting, composition. Keep character details consistent.
+Output ONLY the prompt, nothing else.`;
     } else {
-        // Page prompt: ~400-500 chars max
-        enhancedPrompt = `${artStyle} style children's book page. Character: ${shortCharDesc}. Scene: ${shortScene}. Colorful, expressive, warm lighting, detailed, engaging for ages 5-10.`;
+        promptGenSystemMessage = `You are an expert at creating concise, high-quality image generation prompts for children's book illustrations.
+
+Given:
+- Art Style: ${artStyle}
+- Character Description: ${characterDescription}
+- Scene Text: ${text}
+
+Create a DETAILED but CONCISE image prompt (max ${targetLength} characters) that includes:
+1. The art style
+2. Key character visual details (MUST match character description for consistency)
+3. What's happening in the scene
+4. Setting/background details
+5. Character expression and pose
+6. Lighting and mood
+
+Focus on VISUAL storytelling. Be specific about colors, composition, emotions. Maintain character consistency.
+Output ONLY the prompt, nothing else.`;
     }
+
+    // Generate optimized prompt using LLM
+    const promptGenResponse = await axios.post('https://api.venice.ai/api/v1/chat/completions', {
+        model: 'mistral-31-24b',
+        messages: [
+            { role: 'system', content: promptGenSystemMessage },
+            { role: 'user', content: 'Generate the optimized image prompt now.' }
+        ],
+        max_tokens: 500
+    }, { headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` } });
+
+    let enhancedPrompt = promptGenResponse.data.choices[0].message.content.trim();
     
-    // Final safety check - keep under 1400 to be safe
-    const safeLimit = Math.min(promptLimit, 1400);
+    console.log(`🤖 LLM generated prompt: ${enhancedPrompt.length} characters`);
+    
+    // Final safety check - keep under 1400 to be absolutely safe
+    const safeLimit = 1350; // Conservative limit
     if (enhancedPrompt.length > safeLimit) {
         console.warn(`⚠️  TRUNCATING: Prompt is ${enhancedPrompt.length} chars, exceeds safe limit of ${safeLimit} chars`);
         enhancedPrompt = enhancedPrompt.substring(0, safeLimit);
