@@ -248,30 +248,70 @@ Output ONLY the prompt, nothing else.`;
         console.log(`✅ Prompt length OK (${enhancedPrompt.length}/${safeLimit} chars)`);
     }
 
-    // Build payload for NEW Venice.ai image API
+    // Determine optimal steps based on model constraints (from Venice.ai docs)
+    const modelStepsMap = {
+        'venice-sd35': 30,
+        'hidream': 50,
+        'flux-dev': 30,
+        'flux-dev-uncensored': 30,
+        'lustify-sdxl': 50,
+        'lustify-v7': 25,
+        'qwen-image': 8,
+        'wai-Illustrious': 30
+    };
+    const optimalSteps = modelStepsMap[safeImageModelId] || 25;
+    
+    // Generate a consistent seed for the entire book (so images have similar style)
+    // Use a hash of the character description to make it consistent per character
+    const seedHash = characterDescription.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const bookSeed = (seedHash % 999999999) + 1; // Positive seed within range
+    
+    // Map art styles to Venice.ai style presets when applicable
+    const stylePresetMap = {
+        'Playful cartoon': '3D Model',
+        'Bold comic panels': 'Comic Book',
+        'Dreamy watercolour': 'Watercolor',
+        'Gentle pencil sketch': 'Line art',
+        'Mythic stained glass': 'Stained Glass',
+        'Futuristic neon sci-fi': 'Neon Punk'
+    };
+    const stylePreset = stylePresetMap[artStyle] || null;
+    
+    // Build payload for NEW Venice.ai image API with enhancements
     const imageRequestPayload = {
         model: safeImageModelId,
         prompt: enhancedPrompt,
-        negative_prompt: "ugly, deformed, distorted, scary, dark, violent, nsfw, adult content, inappropriate, blurry, low quality",
+        negative_prompt: "ugly, deformed, distorted, scary, dark, violent, nsfw, adult content, inappropriate, blurry, low quality, text, watermark, signature",
         width: width,
         height: height,
         variants: 1,
-        steps: 25,
-        cfg_scale: 7.5,
+        steps: optimalSteps,
+        cfg_scale: 7.5, // Balance between creativity and adherence to prompt
+        seed: bookSeed, // Consistent seed for style consistency across book
+        lora_strength: 50, // Medium LoRA strength if model supports it
         format: "webp",
         safe_mode: true,
         hide_watermark: false,
-        embed_exif_metadata: false,
+        embed_exif_metadata: true, // Embed generation info for debugging
         return_binary: false
     };
+    
+    // Add style preset if applicable
+    if (stylePreset) {
+        imageRequestPayload.style_preset = stylePreset;
+    }
 
     console.log(`🚀 Sending to NEW Venice.ai Image API:`, { 
         model: imageRequestPayload.model, 
         dimensions: `${width}x${height}`,
+        steps: optimalSteps,
+        cfg_scale: imageRequestPayload.cfg_scale,
+        seed: bookSeed,
+        lora_strength: imageRequestPayload.lora_strength,
+        style_preset: stylePreset || 'none',
         safe_mode: imageRequestPayload.safe_mode,
         hide_watermark: imageRequestPayload.hide_watermark,
-        prompt_length: imageRequestPayload.prompt.length,
-        steps: imageRequestPayload.steps
+        prompt_length: imageRequestPayload.prompt.length
     });
 
     try {
@@ -476,9 +516,10 @@ You are an award-winning children's book author in the style of Mo Willems, Oliv
 2. FLOWING narrative - each page continues naturally from the last
 3. NEVER repeat "Once upon a time" or similar phrases
 4. USE transition words: "Then", "Next", "Suddenly", "Meanwhile", "After that"
-5. NO math formulas, NO symbols like $$, $\\frac, NO LaTeX code
+5. ABSOLUTELY NO MATH: NO equations (like 7+70+200), NO formulas, NO symbols like $$, $, \\frac, ^, =, +, -, *, /, NO LaTeX code, NO calculations
 6. NO "Page 1:", "Page 2:" labels in the text itself
-7. Write in SIMPLE, BEAUTIFUL prose
+7. Write in SIMPLE, BEAUTIFUL prose - this is a STORY, not a math textbook
+8. If the story involves counting or numbers, write them out as WORDS: "seven apples" not "7 apples"
 
 **Grade Level ${gradeLevel}:**
 - Grades 1-2: Simple words, short sentences (5-8 words), repetition, rhythm
@@ -557,7 +598,40 @@ Write like you're creating a TREASURE that families will read together at bedtim
         }
 
         const storyData = parseStoryJson(storyContent);
-        const { title, story } = storyData;
+        let { title, story } = storyData;
+        
+        // Clean math formulas and LaTeX from story text
+        const cleanMathFromText = (text) => {
+            if (!text) return text;
+            
+            let cleaned = text;
+            
+            // Remove inline LaTeX: $...$ or $$...$$
+            cleaned = cleaned.replace(/\$\$[^\$]+\$\$/g, '');
+            cleaned = cleaned.replace(/\$[^\$]+\$/g, '');
+            
+            // Remove LaTeX commands: \frac{...}{...}, \sqrt{...}, etc.
+            cleaned = cleaned.replace(/\\[a-zA-Z]+\{[^}]*\}(\{[^}]*\})*/g, '');
+            
+            // Remove standalone math expressions with operators
+            cleaned = cleaned.replace(/\b\d+[\+\-\*\/\^=]+\d+[\+\-\*\/\^=\d\s]*/g, '');
+            
+            // Remove mathematical symbols and operators
+            cleaned = cleaned.replace(/[∫∑∏√∞≈≠≤≥±×÷]/g, '');
+            
+            // Clean up extra spaces
+            cleaned = cleaned.replace(/\s+/g, ' ').trim();
+            
+            // Remove "as" followed by nothing or spaces (leftover from formula removal)
+            cleaned = cleaned.replace(/\s+as\s*$/gi, '').replace(/\s+as\s+\./gi, '.');
+            
+            return cleaned;
+        };
+        
+        // Apply cleaning to all story pages
+        story = story.map(page => cleanMathFromText(page));
+        title = cleanMathFromText(title);
+        
         console.log(`Successfully generated story: "${title}"`);
 
         // 2. Generate a Consistent Character Description
@@ -568,13 +642,19 @@ Story Title: ${title}
 First page: ${story[0]}
 
 Include ONLY visual details:
-- Age and gender
+- Age and gender (use words: "young girl", "boy", NOT numbers like "12-year-old")
 - Hair (color, style)
 - Eyes (color)
 - Clothing (2-3 items with colors)
-- One distinctive feature
+- One distinctive feature (like a birthmark shape or accessory)
 
-Keep it simple and visual. NO personality traits, NO backstory, NO math formulas.
+CRITICAL RULES:
+- NO NUMBERS AT ALL (not even ages!)
+- NO MATH FORMULAS OR EQUATIONS
+- NO SYMBOLS like $$, $, \frac, ^, =, +
+- ONLY descriptive words about physical appearance
+- NO personality traits, NO backstory
+
 Output ONLY the description, nothing else.`;
         
         const characterResponse = await axios.post('https://api.venice.ai/api/v1/chat/completions', {
@@ -582,7 +662,11 @@ Output ONLY the description, nothing else.`;
             messages: [{ role: 'system', content: characterDescSystemPrompt }, { role: 'user', content: 'Generate SHORT character description now.' }],
             max_tokens: 150
         }, { headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` } });
-        const characterDescription = characterResponse.data.choices[0].message.content.trim();
+        let characterDescription = characterResponse.data.choices[0].message.content.trim();
+        
+        // Clean any math formulas from character description too
+        characterDescription = cleanMathFromText(characterDescription);
+        
         console.log("📋 Character Description:", characterDescription);
 
         // 3. Generate all images with the character description

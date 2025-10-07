@@ -280,6 +280,75 @@ Only these Venice.ai models are allowed (with safe_mode enforced):
 
 ---
 
+## Image Generation Enhancements
+
+### Optimal Steps by Model
+The system automatically selects the optimal number of inference steps based on the model's capabilities:
+
+```javascript
+const modelStepsMap = {
+    'venice-sd35': 30,
+    'hidream': 50,
+    'flux-dev': 30,
+    'flux-dev-uncensored': 30,
+    'lustify-sdxl': 50,
+    'lustify-v7': 25,
+    'qwen-image': 8,
+    'wai-Illustrious': 30
+};
+```
+
+### Consistent Seed Generation
+To ensure visual consistency across all images in a book, a seed is generated based on the character description:
+
+```javascript
+const seedHash = characterDescription.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+const bookSeed = (seedHash % 999999999) + 1;
+```
+
+This ensures that books featuring the same character will have similar visual styles.
+
+### Style Presets
+Art styles are mapped to Venice.ai's built-in style presets for enhanced visual quality:
+
+```javascript
+const stylePresetMap = {
+    'Playful cartoon': '3D Model',
+    'Bold comic panels': 'Comic Book',
+    'Dreamy watercolour': 'Watercolor',
+    'Gentle pencil sketch': 'Line art',
+    'Mythic stained glass': 'Stained Glass',
+    'Futuristic neon sci-fi': 'Neon Punk'
+};
+```
+
+### LoRA Strength
+For models that support additional LoRA layers, a medium strength of 50 is used to balance style enhancement with prompt adherence.
+
+### Complete Image Request Payload
+```javascript
+{
+    model: 'venice-sd35',
+    prompt: 'Enhanced prompt from LLM...',
+    negative_prompt: 'ugly, deformed, distorted, scary, dark, violent, nsfw, adult content, inappropriate, blurry, low quality, text, watermark, signature',
+    width: 1024,
+    height: 1024,
+    variants: 1,
+    steps: 30, // Model-specific optimal steps
+    cfg_scale: 7.5, // Balance between creativity and adherence
+    seed: 123456789, // Consistent across book
+    lora_strength: 50, // Medium strength for LoRA models
+    style_preset: 'Comic Book', // If applicable to art style
+    format: 'webp',
+    safe_mode: true,
+    hide_watermark: false,
+    embed_exif_metadata: true,
+    return_binary: false
+}
+```
+
+---
+
 ## API Endpoints Used
 
 ### Text Generation
@@ -293,10 +362,26 @@ Only these Venice.ai models are allowed (with safe_mode enforced):
 - **Headers:** 
   - `Authorization: Bearer ${VENICE_API_KEY}`
   - `Content-Type: application/json`
+- **Response Format:** 
+  ```json
+  {
+    "id": "generate-image-1234567890",
+    "images": ["base64-encoded-webp-string"],
+    "timing": { ... },
+    "request": { ... }
+  }
+  ```
 
 ---
 
 ## Changelog
+
+**Version 1.1** - October 7, 2025
+- **MATH FILTERING ADDED**: Robust post-processing to remove all math formulas, LaTeX, and equations from stories
+- **Enhanced prompts**: Explicit rules against math symbols, equations, and numerical calculations
+- **Character descriptions**: Now explicitly forbid numbers and ages in numerical form
+- **Cleaner output**: Automated removal of `$$...$$`, `$...$`, `\frac{}{}`, and arithmetic expressions
+- **Image generation enhancements**: Model-specific optimal steps, consistent seeds, style presets, LoRA strength
 
 **Version 1.0** - October 7, 2025
 - Initial prompt system
