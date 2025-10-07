@@ -283,34 +283,63 @@ Output ONLY the prompt, nothing else.`;
         });
 
         console.log(`✅ Image generated successfully`);
+        console.log(`📦 Raw API response keys:`, Object.keys(imageResponse.data || {}));
+        
+        let imageUrl = null;
         
         // The new API returns image URL in different possible formats
         if (imageResponse.data) {
             // Try direct url field
             if (imageResponse.data.url) {
-                return imageResponse.data.url;
+                imageUrl = imageResponse.data.url;
+                console.log(`🔗 Found image at: data.url`);
             }
             // Try data array format
-            if (imageResponse.data.data && Array.isArray(imageResponse.data.data) && imageResponse.data.data[0]) {
+            else if (imageResponse.data.data && Array.isArray(imageResponse.data.data) && imageResponse.data.data[0]) {
                 if (imageResponse.data.data[0].url) {
-                    return imageResponse.data.data[0].url;
+                    imageUrl = imageResponse.data.data[0].url;
+                    console.log(`🔗 Found image at: data.data[0].url`);
                 }
-                if (imageResponse.data.data[0].b64_json) {
-                    return `data:image/webp;base64,${imageResponse.data.data[0].b64_json}`;
+                else if (imageResponse.data.data[0].b64_json) {
+                    imageUrl = `data:image/webp;base64,${imageResponse.data.data[0].b64_json}`;
+                    console.log(`🔗 Found image at: data.data[0].b64_json (converted to data URL)`);
                 }
             }
             // Try direct image_url field
-            if (imageResponse.data.image_url) {
-                return imageResponse.data.image_url;
+            else if (imageResponse.data.image_url) {
+                imageUrl = imageResponse.data.image_url;
+                console.log(`🔗 Found image at: data.image_url`);
             }
             // Try images array
-            if (imageResponse.data.images && Array.isArray(imageResponse.data.images) && imageResponse.data.images[0]) {
-                return imageResponse.data.images[0];
+            else if (imageResponse.data.images && Array.isArray(imageResponse.data.images) && imageResponse.data.images[0]) {
+                imageUrl = imageResponse.data.images[0];
+                console.log(`🔗 Found image at: data.images[0]`);
             }
         }
         
-        console.error('Unexpected API response structure:', JSON.stringify(imageResponse.data, null, 2));
-        throw new Error('Could not extract image URL from API response');
+        if (!imageUrl) {
+            console.error('❌ Could not extract image URL. Response structure:', JSON.stringify(imageResponse.data, null, 2));
+            throw new Error('Could not extract image URL from API response');
+        }
+        
+        console.log(`✅ Image URL extracted: ${imageUrl.substring(0, 100)}...`);
+        
+        // If it's a remote URL (not base64), download and convert to base64 for reliable display
+        if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+            console.log(`📥 Downloading image and converting to base64...`);
+            try {
+                const imageDownload = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+                const base64Image = Buffer.from(imageDownload.data, 'binary').toString('base64');
+                const dataUrl = `data:image/webp;base64,${base64Image}`;
+                console.log(`✅ Converted to base64 data URL (${base64Image.length} bytes)`);
+                return dataUrl;
+            } catch (downloadError) {
+                console.error(`⚠️  Failed to download image, returning original URL:`, downloadError.message);
+                return imageUrl; // Fallback to original URL
+            }
+        }
+        
+        return imageUrl;
     } catch (error) {
         console.error('Image generation error:', error.response?.data || error.message);
         throw error;
