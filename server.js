@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -7,7 +9,7 @@ const VENICE_API_KEY = process.env.VENICE_API_KEY
     || process.env.VENICE_TOKEN
     || process.env.VITE_VENICE_API_KEY
     || process.env.API_KEY
-    || '';
+    || 'ntmhtbP2fr_pOQsmuLPuN_nm6lm2INWKiNcvrdEfEC';
 
 const veniceEnabled = Boolean(VENICE_API_KEY);
 
@@ -176,6 +178,9 @@ async function generateImageForText(
     const rawPromptLimit = getPromptCharacterLimit(safeImageModelId);
     const promptLimitBuffer = 50;
     const promptLimit = Math.max(1, rawPromptLimit - promptLimitBuffer);
+    
+    console.log(`📏 Model "${safeImageModelId}" has prompt limit: ${rawPromptLimit} chars (using ${promptLimit} after buffer)`);
+    
     let imagePromptSystem;
     
     if (isCover) {
@@ -198,9 +203,14 @@ async function generateImageForText(
     }, { headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` } });
 
     let imagePrompt = promptGenResponse.data.choices[0].message.content;
+    console.log(`📝 Generated image prompt: ${imagePrompt.length} characters`);
+    
     if (imagePrompt.length > promptLimit) {
-        console.log(`Truncating long image prompt to ${promptLimit} chars to respect ${safeImageModelId}'s ${rawPromptLimit}-character limit.`);
+        console.warn(`⚠️  TRUNCATING: Prompt is ${imagePrompt.length} chars, exceeds ${safeImageModelId}'s limit of ${promptLimit} chars`);
         imagePrompt = imagePrompt.substring(0, promptLimit);
+        console.log(`✂️  Truncated to ${imagePrompt.length} characters`);
+    } else {
+        console.log(`✅ Prompt length OK (${imagePrompt.length}/${promptLimit} chars)`);
     }
 
     const imageRequestPayload = buildSafeImagePayload({
@@ -209,6 +219,14 @@ async function generateImageForText(
         size,
         response_format: 'url',
     }, safeImageModelId);
+
+    console.log(`🚀 Sending to Venice.ai API:`, { 
+        model: imageRequestPayload.model, 
+        size: imageRequestPayload.size,
+        safe_mode: imageRequestPayload.safe_mode,
+        hide_watermark: imageRequestPayload.hide_watermark,
+        prompt_length: imageRequestPayload.prompt.length 
+    });
 
     const imageResponse = await axios.post('https://api.venice.ai/api/v1/images/generations', imageRequestPayload, {
         headers: { 'Authorization': `Bearer ${VENICE_API_KEY}` },
@@ -401,7 +419,9 @@ You are a world-class children's book author. Your task is to write a unique, ca
 
         // 3. Generate all images with the character description
         const safeImageModel = enforceSafeImageModel(imageModel);
-        console.log(`Generating all illustrations with image model: ${safeImageModel}...`);
+        console.log(`✨ User selected image model: ${imageModel}`);
+        console.log(`✅ Using validated safe image model: ${safeImageModel}`);
+        console.log(`🎨 Generating all illustrations with ${safeImageModel} in "${artStyle}" style...`);
         const coverPromise = generateImageForText(`A beautiful book cover for a story titled "${title}"`, artStyle, safeImageModel, characterDescription, true, title, "1792x1024");
         const pageImagePromises = story.map(pageText => generateImageForText(pageText, artStyle, safeImageModel, characterDescription, false, '', "1024x1024"));
         const endPagePromise = generateImageForText(`A beautiful "The End" illustration that matches the theme and style of the story "${title}". Show a magical, whimsical "The End" sign or text integrated naturally into a scene that reflects the story's mood and setting.`, artStyle, safeImageModel, characterDescription, false, '', "1024x1024");
