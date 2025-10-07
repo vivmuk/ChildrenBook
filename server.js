@@ -182,22 +182,33 @@ async function generateImageForText(
     
     console.log(`📏 Model "${safeImageModelId}" has prompt limit: ${rawPromptLimit} chars (using ${promptLimit} after buffer)`);
     
-    // Create detailed, cohesive prompts
+    // Extract key character features (keep it SHORT)
+    const characterWords = characterDescription.split(' ');
+    const shortCharDesc = characterWords.slice(0, 20).join(' '); // Max 20 words
+    
+    // Extract key scene elements (keep it SHORT)
+    const sceneWords = text.split(' ');
+    const shortScene = sceneWords.slice(0, 25).join(' '); // Max 25 words
+    
+    // Create CONCISE prompts that stay under 1400 chars
     let enhancedPrompt;
     
     if (isCover) {
-        enhancedPrompt = `Beautiful children's book cover in ${artStyle} style. ${title}. ${characterDescription}. ${text}. Vibrant, enchanting, professional book cover design with the main character prominently featured. Warm lighting, inviting atmosphere.`;
+        // Cover prompt: ~300-400 chars max
+        enhancedPrompt = `Children's book cover, ${artStyle} style. Title: ${title}. Main character: ${shortCharDesc}. Vibrant, enchanting, professional illustration, warm colors.`;
     } else {
-        enhancedPrompt = `Children's book illustration in ${artStyle} style. ${characterDescription} is the main character. Scene: ${text}. Consistent character design, expressive emotions, detailed background, warm lighting, engaging composition, perfect for children ages 5-10.`;
+        // Page prompt: ~400-500 chars max
+        enhancedPrompt = `${artStyle} style children's book page. Character: ${shortCharDesc}. Scene: ${shortScene}. Colorful, expressive, warm lighting, detailed, engaging for ages 5-10.`;
     }
     
-    // Ensure prompt is within limits
-    if (enhancedPrompt.length > promptLimit) {
-        console.warn(`⚠️  TRUNCATING: Prompt is ${enhancedPrompt.length} chars, exceeds ${safeImageModelId}'s limit of ${promptLimit} chars`);
-        enhancedPrompt = enhancedPrompt.substring(0, promptLimit);
+    // Final safety check - keep under 1400 to be safe
+    const safeLimit = Math.min(promptLimit, 1400);
+    if (enhancedPrompt.length > safeLimit) {
+        console.warn(`⚠️  TRUNCATING: Prompt is ${enhancedPrompt.length} chars, exceeds safe limit of ${safeLimit} chars`);
+        enhancedPrompt = enhancedPrompt.substring(0, safeLimit);
         console.log(`✂️  Truncated to ${enhancedPrompt.length} characters`);
     } else {
-        console.log(`✅ Prompt length OK (${enhancedPrompt.length}/${promptLimit} chars)`);
+        console.log(`✅ Prompt length OK (${enhancedPrompt.length}/${safeLimit} chars)`);
     }
 
     // Build payload for NEW Venice.ai image API
