@@ -1,30 +1,22 @@
 const SAFE_IMAGE_MODELS = Object.freeze({
+    'qwen-image': {
+        promptCharacterLimit: 1400,
+        label: 'Qwen Image',
+    },
     'venice-sd35': {
-        promptCharacterLimit: 1500,
+        promptCharacterLimit: 1400,
         label: 'Venice SD35',
     },
     'hidream': {
-        promptCharacterLimit: 1500,
+        promptCharacterLimit: 1400,
         label: 'HiDream',
-    },
-    'flux-dev': {
-        promptCharacterLimit: 2048,
-        label: 'FLUX Standard',
-    },
-    'qwen-image': {
-        promptCharacterLimit: 1500,
-        label: 'Qwen Image',
-    },
-    'wai-Illustrious': {
-        promptCharacterLimit: 1500,
-        label: 'Anime (WAI)',
     },
 });
 
 const SAFE_IMAGE_MODEL_IDS = Object.freeze(Object.keys(SAFE_IMAGE_MODELS));
 
 const SAFE_IMAGE_MODEL_SET = new Set(SAFE_IMAGE_MODEL_IDS);
-const DEFAULT_SAFE_IMAGE_MODEL = SAFE_IMAGE_MODEL_IDS[0];
+const DEFAULT_SAFE_IMAGE_MODEL = 'qwen-image'; // Set Qwen Image as default
 const DEFAULT_PROMPT_CHARACTER_LIMIT = SAFE_IMAGE_MODEL_IDS.reduce((limit, modelId) => {
     const modelLimit = SAFE_IMAGE_MODELS[modelId]?.promptCharacterLimit || limit;
     return Math.min(limit, modelLimit);

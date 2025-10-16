@@ -24,20 +24,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const artStyleSelect = document.getElementById('art-style');
 
     const ART_STYLE_OPTIONS = [
-        { value: 'Classic storybook', label: 'Classic storybook', defaultSelected: true },
-        { value: 'Dreamy watercolour', label: 'Dreamy watercolour' },
-        { value: 'Playful cartoon', label: 'Playful cartoon' },
-        { value: 'Studio Ghibli inspired', label: 'Studio Ghibli inspired' },
-        { value: 'Bold comic panels', label: 'Bold comic panels' },
-        { value: 'Cozy pastel picture book', label: 'Cozy pastel picture book' },
-        { value: 'Whimsical paper cutout', label: 'Whimsical paper cutout' },
-        { value: 'Vibrant pop art adventure', label: 'Vibrant pop art adventure' },
-        { value: 'Gentle pencil sketch', label: 'Gentle pencil sketch' },
-        { value: 'Magical night sky', label: 'Magical night sky' },
-        { value: 'Retro 80s picture book', label: 'Retro 80s picture book' },
-        { value: 'Mythic stained glass', label: 'Mythic stained glass' },
-        { value: 'Futuristic neon sci-fi', label: 'Futuristic neon sci-fi' },
-        { value: 'Warm claymation diorama', label: 'Warm claymation diorama' }
+        { value: 'Studio Ghibli', label: 'Studio Ghibli', defaultSelected: true },
+        { value: 'Hayao Miyazaki style', label: 'Hayao Miyazaki style' },
+        { value: 'Midcentury American cartoon', label: 'Midcentury American cartoon' },
+        { value: 'Amar Chitra Katha', label: 'Amar Chitra Katha' },
+        { value: 'Chacha Chaudhary', label: 'Chacha Chaudhary' },
+        { value: 'xkcd Comics', label: 'xkcd Comics' },
+        { value: 'Old cartoon', label: 'Old cartoon' },
+        { value: 'Indian Warli art', label: 'Indian Warli art' }
     ];
 
     if (artStyleSelect) {
@@ -280,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Array.isArray(imageModels) && imageModels.length > 0) {
                 imageModels.forEach(model => {
                     const option = renderOption(imageModelSelect, model, 'Safe image model');
-                    if (model.id === 'venice-sd35') {
+                    if (model.id === 'qwen-image') {
                         option.selected = true;
                     }
                 });
