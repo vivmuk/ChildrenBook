@@ -10,33 +10,58 @@ const {
 /**
  * Generate a structured image prompt with style, characters, and scene details
  */
-async function generateStructuredImagePrompt(text, artStyle, apiKey, characterDescription, isCover = false) {
+async function generateStructuredImagePrompt(text, artStyle, apiKey, characterDescription, isCover = false, gradeLevel = '3') {
+    // Detailed style specifications that MUST be followed
     const styleDescriptions = {
-        'Studio Ghibli': 'lush hand-painted backgrounds, soft watercolor textures, dreamlike lighting, nostalgic and whimsical atmosphere, rich environmental details, gentle character designs',
-        'Hayao Miyazaki style': 'magical realism, detailed natural landscapes, expressive character animation, ethereal lighting, organic flowing forms, sense of wonder and adventure',
-        'Midcentury American cartoon': 'bold flat colors, clean geometric shapes, limited animation style, retro 1950s-60s aesthetic, simple but expressive characters, minimalist backgrounds',
-        'Amar Chitra Katha': 'traditional Indian comic book style, vibrant colors, detailed cultural costumes, narrative panel composition, mythological or historical elements, expressive faces',
-        'Chacha Chaudhary': 'simple line art, bold outlines, bright primary colors, comic book panels, expressive cartoon characters, Indian cultural context, humorous visual storytelling',
-        'xkcd Comics': 'minimalist stick figure art, simple black line drawings on white background, clever visual metaphors, clean geometric shapes, focus on ideas over detail',
-        'Old cartoon': 'vintage 1930s-40s animation style, rubber hose animation, pie-cut eyes, exaggerated expressions, hand-drawn cel animation aesthetic, grainy nostalgic quality',
-        'Indian Warli art': 'tribal geometric patterns, white figures on earthy background, stick figure humans and animals, repetitive circular and triangular motifs, folk art simplicity, cultural storytelling'
+        'Studio Ghibli': `AUTHENTIC Studio Ghibli animation style: soft watercolor painted backgrounds with incredible depth, gentle hand-painted textures, characters with large expressive eyes and rosy cheeks, flowing natural hair movement, detailed clothing folds, warm golden lighting filtering through scenes, lush environmental details (grass blades, tree leaves, clouds), nostalgic peaceful atmosphere, painterly brushstrokes visible, color palette of soft pastels with rich accent colors, characters integrated naturally into detailed backgrounds, dreamlike quality reminiscent of My Neighbor Totoro, Spirited Away, and Kiki's Delivery Service`,
+        
+        'Hayao Miyazaki style': `Hayao Miyazaki's distinctive animation aesthetic: incredibly detailed natural environments (forests, meadows, skies), magical realism elements seamlessly integrated, characters with expressive large eyes and gentle features, dynamic cloud formations, glowing atmospheric lighting, sense of movement in hair and clothing, organic flowing shapes, rich color gradients, hand-painted watercolor backgrounds, depth through multiple layers, whimsical yet grounded character designs, environmental storytelling through background details, sense of wonder and adventure`,
+        
+        'Midcentury American cartoon': `1950s-60s midcentury American cartoon style: bold flat colors without gradients, clean geometric simplified shapes, limited color palette (primary colors dominant), thick black outlines around all elements, minimalist backgrounds with simple patterns, characters with simple rounded features, retro typography influences, sharp angular design elements, vintage advertising aesthetic, Chuck Jones / UPA animation influence, stylized proportions, graphic design sensibility`,
+        
+        'Amar Chitra Katha': `Traditional Indian Amar Chitra Katha comic book illustration style: vibrant saturated colors, detailed traditional Indian clothing (saris, dhotis, jewelry), expressive faces with defined features, narrative comic panel composition, cultural and mythological visual elements, decorative borders and patterns, rich skin tones, detailed architecture (temples, palaces), dramatic poses and gestures, clear linework with color fills, educational illustration quality, authentic Indian cultural representation`,
+        
+        'Chacha Chaudhary': `Chacha Chaudhary Indian comic style: simple bold line art, thick black outlines, bright primary colors (red, yellow, blue), comic book panel layout, expressive cartoon faces with exaggerated features, simple backgrounds, Indian cultural elements (turbans, traditional clothing, Indian settings), humorous visual storytelling, clear readable compositions, cartoon proportions, retro Indian comic aesthetic from the 1970s-80s`,
+        
+        'xkcd Comics': `xkcd minimalist stick figure comic style: extremely simple black line drawings on pure white background, stick figure characters made of basic lines and circles, no color except black lines, no shading or gradients, clean geometric shapes, clever visual metaphors, mathematical or scientific diagram influence, minimalist environment suggestions, focus on ideas and concepts over visual detail, Randall Munroe's distinctive simple aesthetic`,
+        
+        'Old cartoon': `Vintage 1930s-1940s classic animation style: rubber hose animation limbs (bendy, flowing), pie-cut eyes (wedge-shaped), white gloves on hands, exaggerated expressions and movements, grainy film texture, limited color palette (sepia tones or early Technicolor), hand-drawn cel animation aesthetic with visible ink lines, bouncy personality poses, vintage cartoon physics, classic Disney/Fleischer Studios influence, nostalgic aged appearance`,
+        
+        'Indian Warli art': `Authentic Indian Warli tribal art style: white figures on earthy brown/terracotta background, stick figure humans and animals made of simple circles, triangles, and lines, repetitive geometric patterns, circular dance formations (tarpa dance), ritualistic compositions, folk art simplicity, no perspective or depth, flat two-dimensional, symbolic representation over realism, tribal cultural storytelling, traditional Indian rural life themes, minimalist geometric aesthetic`
     };
 
     const styleDesc = styleDescriptions[artStyle] || styleDescriptions['Studio Ghibli'];
     
-    const systemPrompt = `You are an expert art director creating ${isCover ? 'cover' : 'page'} illustrations for a world-class children's book. 
+    // Age-appropriate character guidelines
+    const gradeNum = parseInt(gradeLevel);
+    let ageGuidance = '';
+    if (gradeNum <= 2) {
+        ageGuidance = 'If adult characters are present, they should be clearly adults (mature faces, adult proportions, taller). If child characters are present, they should be small children aged 6-7 (shorter, rounder faces, childlike proportions, innocent expressions).';
+    } else if (gradeNum <= 4) {
+        ageGuidance = 'If adult characters are present, they should be clearly adults (mature features, adult body proportions). If child characters are present, they should be children aged 8-9 (pre-teen proportions, youthful faces, energetic poses).';
+    } else {
+        ageGuidance = 'If adult characters are present, they should be clearly adults with mature features. If child/teen characters are present, they should be pre-teens/early teens aged 10-12 (taller than young children, developing features, more sophisticated proportions).';
+    }
+    
+    const systemPrompt = `You are a MASTER art director who PERFECTLY replicates artistic styles for children's books. 
+
+CRITICAL STYLE REQUIREMENT: The image MUST authentically match the "${artStyle}" style. Study this description and follow it EXACTLY:
+
+${styleDesc}
 
 Create a structured JSON prompt with three components:
-1. "style": Detailed visual style description incorporating: ${styleDesc}
-2. "characters": Precise description of characters in the scene. ALWAYS include: "${characterDescription}"
-3. "scene": The setting, composition, mood, lighting, and action happening in this specific moment
 
-The final image must be in the "${artStyle}" style. Be specific, vivid, and paint a complete picture.
-Return ONLY valid JSON with these three keys: style, characters, scene.`;
+1. "style": START with "${artStyle} style:" then describe the visual style using the specifications above. Include specific details about colors, linework, textures, lighting, and composition that define this exact style.
+
+2. "characters": Describe ALL characters in the scene with PRECISE age-appropriate details. ${ageGuidance} ALWAYS include: "${characterDescription}" Specify exact ages, proportions, facial features, clothing, and expressions appropriate for their age.
+
+3. "scene": Describe the setting, composition, mood, lighting, specific actions, and background elements in the "${artStyle}" aesthetic.
+
+Return ONLY valid JSON with keys: style, characters, scene.`;
 
     const userPrompt = isCover 
-        ? `Create a stunning book cover composition for: "${text}"`
-        : `Create an illustration for this story moment: "${text}"`;
+        ? `Create a stunning book cover in authentic "${artStyle}" style for: "${text}"`
+        : `Create an illustration in pure "${artStyle}" style for: "${text}"`;
 
     const response = await axios.post('https://api.venice.ai/api/v1/chat/completions', {
         model: 'mistral-31-24b',
@@ -159,7 +184,7 @@ exports.handler = async function (event, context) {
 Return JSON:
 - "title": Compelling, age-appropriate book title
 - "pages": Array of 8 detailed page descriptions
-- "characterDescription": Detailed visual description of main character
+- "characterDescription": DETAILED visual description of ALL main characters (protagonist AND any adults/family members). ${gradeNum <= 2 ? 'If there are adults (parents/teachers), describe them as CLEARLY ADULT (mature face, adult height, parental age 30-40). Child character should be 6-7 years old (small, round face, childlike).' : gradeNum <= 4 ? 'If there are adults, describe them as CLEARLY ADULT (mature features, tall, parental age 30-40). Child character should be 8-9 years old (pre-teen proportions).' : 'If there are adults, describe them as CLEARLY ADULT (fully mature, adult proportions, age 35-45). Main character should be 10-12 years old (pre-teen/early teen).'} Include specific ages, facial features, body proportions, hair, clothing, and how to distinguish adults from children.
 - "theme": Core message`;
 
         const storyboardResponse = await axios.post('https://api.venice.ai/api/v1/chat/completions', {
@@ -256,7 +281,8 @@ Return JSON with:
             artStyle,
             VENICE_API_KEY,
             characterDescription,
-            true
+            true,
+            gradeLevel
         );
         
         // Page images
@@ -267,7 +293,8 @@ Return JSON with:
                     artStyle,
                     VENICE_API_KEY,
                     characterDescription,
-                    false
+                    false,
+                    gradeLevel
                 )
             )
         );
@@ -278,7 +305,8 @@ Return JSON with:
             artStyle,
             VENICE_API_KEY,
             characterDescription,
-            false
+            false,
+            gradeLevel
         );
 
         console.log('Structured prompts created. Generating images...');
