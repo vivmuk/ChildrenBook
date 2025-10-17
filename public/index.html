@@ -106,13 +106,6 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="text-model">Text generation model</label>
-                                <select id="text-model">
-                                    <option value="">Loading models…</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
                                 <label for="image-model">Image generation model</label>
                                 <select id="image-model">
                                     <option value="">Loading models…</option>
@@ -133,7 +126,8 @@
                                     <span class="btn__sparkle" aria-hidden="true"></span>
                                     Generate full storybook
                                 </button>
-                                <button type="button" id="download-pdf-btn" class="btn btn--secondary hidden">Download book as PDF</button>
+                                <button type="button" id="download-pdf-btn" class="btn btn--secondary hidden">📄 Download PDF</button>
+                                <button type="button" id="download-html-btn" class="btn btn--secondary hidden">📖 Download Interactive HTML Book</button>
                             </div>
                         </form>
 
@@ -193,7 +187,10 @@
                                 <p class="story-meta">Your illustrated adventure</p>
                                 <h2 id="book-title"></h2>
                             </div>
-                            <button type="button" id="download-pdf-btn-top" class="btn btn--secondary hidden">Download PDF</button>
+                            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                <button type="button" id="download-pdf-btn-top" class="btn btn--secondary hidden">📄 PDF</button>
+                                <button type="button" id="download-html-btn-top" class="btn btn--secondary hidden">📖 HTML Book</button>
+                            </div>
                         </div>
                         <div id="book-cover" class="book-cover"></div>
                         <div id="book-pages" class="book-pages"></div>

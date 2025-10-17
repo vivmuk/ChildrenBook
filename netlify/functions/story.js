@@ -116,27 +116,51 @@ exports.handler = async function (event, context) {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Please select a permitted safe Venice.ai image model.' }) };
         }
 
-        // STEP 1: Use reasoning model to create detailed storyboard
-        console.log(`Creating storyboard with reasoning model...`);
+        // STEP 1: Use Llama 3.3 70B to create detailed storyboard
+        console.log(`Creating storyboard with Llama 3.3 70B...`);
         
-        const storyboardSystemPrompt = `You are a master children's book editor and storyboard artist. Analyze the user's story idea and create a detailed 8-page storyboard that captures the perfect narrative arc for a children's book.
+        const storyboardSystemPrompt = `You are a master children's book editor and storyboard artist with 30 years of experience. Analyze the user's story idea and create a detailed 8-page storyboard that captures the perfect narrative arc.
 
-**Grade Level Guidelines:**
-- **1st-2nd Grade (Ages 6-7):** Inspired by Dr. Seuss, Eric Carle, and Mo Willems. Use 2-4 simple sentences per page with rhythmic, repetitive patterns. Vocabulary: 200-400 words total. Focus on basic emotions, colors, animals, family, and friendship. Each page should have ONE clear action or idea.
-- **3rd-4th Grade (Ages 8-9):** Inspired by Roald Dahl, Beverly Cleary, and Judy Blume. Use 4-6 sentences per page with varied structure. Vocabulary: 800-1200 words total. Include dialogue, humor, and problem-solving. Characters can face meaningful challenges and learn lessons.
-- **5th Grade & Up (Ages 10+):** Inspired by C.S. Lewis, J.K. Rowling, and Madeleine L'Engle. Use 6-8 complex sentences per page. Vocabulary: 1500-2000 words total. Employ literary devices, deeper themes, internal conflict, and moral complexity.
+**GRADE LEVEL SPECIFICATIONS (STRICTLY ADHERE TO THESE):**
+
+**1st-2nd Grade (Ages 6-7):**
+- Style: Dr. Seuss, Eric Carle, Mo Willems
+- Sentence count: 2-4 SHORT sentences per page (MAX 10 words per sentence)
+- Total word count: 150-300 words for ENTIRE 8-page story
+- Vocabulary: ONE syllable words primarily (cat, dog, run, jump, see, play)
+- Structure: Repetitive patterns ("I see a...", "Can you...?", "Where is...?")
+- Themes: Colors, counting, animals, family, basic emotions (happy, sad, scared)
+- NO complex plots - simple cause-and-effect only
+
+**3rd-4th Grade (Ages 8-9):**
+- Style: Roald Dahl, Beverly Cleary, Judy Blume, Ramona Quimby
+- Sentence count: 4-6 sentences per page (10-15 words per sentence)
+- Total word count: 600-900 words for ENTIRE 8-page story
+- Vocabulary: Two-syllable words, some three-syllable (adventure, discover, mystery)
+- Structure: Mix of simple and compound sentences, dialogue with quotation marks
+- Themes: Friendship challenges, small adventures, overcoming fears, learning lessons
+- Include: Clear problem and solution, character growth
+
+**5th Grade & Up (Ages 10+):**
+- Style: C.S. Lewis, J.K. Rowling, Madeleine L'Engle, Rick Riordan
+- Sentence count: 6-10 sentences per page (15-25 words per sentence)
+- Total word count: 1200-1800 words for ENTIRE 8-page story
+- Vocabulary: Complex multi-syllable words, rich adjectives, varied verbs
+- Structure: Complex sentences with clauses, varied paragraph lengths, internal dialogue
+- Themes: Identity, courage, ethics, sacrifice, complex emotions
+- Include: Subplots, foreshadowing, character depth, moral complexity
 
 **Critical Requirements:**
-1. Create exactly 8 page summaries that form a complete story arc
-2. Each page summary should specify: key action, emotional tone, visual elements, and narrative purpose
-3. Story must be in ${language}
+1. Create exactly 8 page summaries forming a complete arc (setup → conflict → resolution)
+2. Each page summary: key action, emotional tone, visual scene, narrative purpose
+3. Language: ${language}
 4. Grade level: ${gradeLevel}
 
-Return a JSON object with:
-- "title": Compelling book title
-- "pages": Array of 8 detailed page descriptions (each 2-3 sentences explaining what happens)
-- "characterDescription": Detailed visual description of the main character (appearance, age, clothing, distinctive features)
-- "theme": Core message or lesson`;
+Return JSON:
+- "title": Compelling, age-appropriate book title
+- "pages": Array of 8 detailed page descriptions
+- "characterDescription": Detailed visual description of main character
+- "theme": Core message`;
 
         const storyboardResponse = await axios.post('https://api.venice.ai/api/v1/chat/completions', {
             model: 'llama-3.3-70b', // Using Llama 3.3 70B for storyboard
@@ -156,46 +180,51 @@ Return a JSON object with:
         // STEP 2: Use mistral-31-24b to write actual story text based on storyboard
         console.log(`Writing story text with mistral-31-24b...`);
         
-        const storyWritingSystemPrompt = `You are one of the world's greatest children's book authors. Based on the provided storyboard, write the actual text for each page with masterful prose that perfectly matches the grade level.
+        const gradeNumber = parseInt(gradeLevel);
+        let gradeInstructions = '';
+        
+        if (gradeNumber <= 2) {
+            gradeInstructions = `**1st-2nd Grade Writing Rules:**
+- Write EXACTLY like Dr. Seuss, Eric Carle, or Mo Willems
+- Each page: 2-4 sentences MAXIMUM
+- Each sentence: 5-10 words MAXIMUM
+- Use ONE-syllable words: cat, dog, run, see, go, big, red, fun
+- Repeat key phrases: "I can...", "Look at...", "Where is...?"
+- NO complex words, NO long descriptions
+- Example: "Sam has a red hat. The hat is big. Sam likes his hat. It is fun!"`;
+        } else if (gradeNumber <= 4) {
+            gradeInstructions = `**3rd-4th Grade Writing Rules:**
+- Write like Roald Dahl, Beverly Cleary, or Judy Blume
+- Each page: 4-6 sentences
+- Each sentence: 10-15 words average
+- Use dialogue: "Let's go!" said Max.
+- Mix sentence types: simple, compound
+- Clear problem and solution structure
+- Example: "Mia couldn't find her backpack anywhere. She looked under her bed and behind the door. 'Mom, have you seen it?' she called. Just then, her little brother walked in wearing it!"`;
+        } else {
+            gradeInstructions = `**5th Grade+ Writing Rules:**
+- Write like C.S. Lewis, J.K. Rowling, or Rick Riordan
+- Each page: 6-10 sentences
+- Each sentence: 15-25 words, vary structure
+- Use complex sentences with clauses
+- Include internal thoughts, rich descriptions
+- Literary devices: metaphors, foreshadowing
+- Example: "The ancient map trembled in Elena's hands as she stood before the gateway, knowing that once she stepped through, there would be no turning back. Her grandmother's warnings echoed in her mind, but the pull of destiny was stronger than her fear."`;
+        }
+        
+        const storyWritingSystemPrompt = `You are one of the world's BEST children's book authors. Write the actual text based on the storyboard. FOLLOW THE GRADE LEVEL RULES EXACTLY.
 
-**Writing Standards by Grade Level:**
+${gradeInstructions}
 
-**1st-2nd Grade:**
-- Style: Dr. Seuss (rhyming, rhythm, repetition), Eric Carle (simple poetic language), Mo Willems (direct dialogue)
-- Sentence length: 5-10 words per sentence
-- Sentences per page: 2-4
-- Use present tense, active voice
-- Repetitive phrases for memorability
-- Direct sensory descriptions: "The sun is warm. The grass is green."
-- Example quality: "Max loved his red ball. He bounced it high. Bounce, bounce, bounce! The ball went up, up, up into the sky."
-
-**3rd-4th Grade:**
-- Style: Roald Dahl (whimsical humor, vivid descriptions), Beverly Cleary (relatable situations), Judy Blume (authentic emotions)
-- Sentence length: 10-15 words per sentence
-- Sentences per page: 4-6
-- Mix simple and compound sentences
-- Include dialogue with proper punctuation
-- Rich descriptive adjectives: "The mysterious, creaking door slowly opened."
-- Example quality: "Maya's heart raced as she approached the old library. 'Anyone there?' she called out, her voice echoing through the dusty halls. Behind a stack of ancient books, something rustled."
-
-**5th Grade & Up:**
-- Style: C.S. Lewis (allegory, rich imagery), J.K. Rowling (world-building, complex characters), Madeleine L'Engle (philosophical depth)
-- Sentence length: 15-25 words per sentence
-- Sentences per page: 6-8
-- Complex sentences with subordinate clauses
-- Internal character thoughts and motivations
-- Literary devices: metaphors, similes, foreshadowing
-- Example quality: "As darkness fell over the village, Elena realized that her journey had only just begun. The ancient prophecy her grandmother had whispered about seemed impossible, yet here she stood at the threshold of the enchanted forest, feeling both terrified and strangely alive."
-
-**Critical Instructions:**
-- Write for ${gradeLevel}
-- Language: ${language}
-- Each page must be a complete, polished paragraph appropriate for the grade level
+**CRITICAL REQUIREMENTS:**
+- Write in ${language}
+- Grade level: ${gradeLevel}
+- Each page MUST be appropriate for the grade level
 - NO placeholders, NO "-1", NO incomplete sentences
-- Make every word count - this should be publication-quality
+- This is for publication - make it PERFECT
 
 Return JSON with:
-- "story": Array of exactly 8 strings, each containing the complete text for that page`;
+- "story": Array of exactly 8 strings (one complete text per page)`;
 
         const storyResponse = await axios.post('https://api.venice.ai/api/v1/chat/completions', {
             model: 'mistral-31-24b',
@@ -221,9 +250,9 @@ Return JSON with:
         const safeImageModel = enforceSafeImageModel(imageModel);
         console.log(`Generating illustrations with ${safeImageModel}...`);
         
-        // Cover image
+        // Cover image with embedded title
         const coverStructuredPrompt = await generateStructuredImagePrompt(
-            `Book cover for "${title}": ${storyboardData.theme}`,
+            `Book cover for "${title}". IMPORTANT: The title "${title}" MUST be prominently displayed in the image in large, fun, cartoon-style lettering that matches the ${artStyle} aesthetic. The title should be integrated naturally into the scene as if it's part of the illustration - floating in the sky, carved in wood, made of clouds, etc. Theme: ${storyboardData.theme}`,
             artStyle,
             VENICE_API_KEY,
             characterDescription,
